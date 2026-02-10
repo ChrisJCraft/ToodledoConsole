@@ -5,7 +5,6 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace ToodledoConsole
@@ -15,6 +14,9 @@ namespace ToodledoConsole
         public string AccessToken { get; set; }
         public string RefreshToken { get; set; }
     }
+
+    public class TokenResponse { public string access_token { get; set; } public string refresh_token { get; set; } }
+    public class ToodledoTask { public string id { get; set; } public string title { get; set; } }
 
     class Program
     {
@@ -27,17 +29,13 @@ namespace ToodledoConsole
         private static TokenStorage _tokens = new TokenStorage();
         private static readonly HttpClient _httpClient = new HttpClient();
         private static List<ToodledoTask> _cachedTasks = new List<ToodledoTask>();
-
-        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        };
+        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
         static async Task Main(string[] args)
         {
             Console.Clear();
             Console.WriteLine("========================================");
-            Console.WriteLine("   TOODLEDO CONSOLE v1.4.1");
+            Console.WriteLine("   TOODLEDO CONSOLE v1.5.1");
             Console.WriteLine("========================================");
 
             try
@@ -65,110 +63,18 @@ namespace ToodledoConsole
                 if (!authenticated)
                 {
                     Console.WriteLine("\n[AUTH REQUIRED]");
-                    Console.WriteLine("1. Open your 'login.html' file.");
-                    Console.WriteLine("2. Click 'Authorize Application'.");
                     await AuthorizeAsync();
                 }
 
                 Console.WriteLine("Success! Connection Verified.");
                 await RunCommandLoop();
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine("\n[FATAL ERROR]: " + ex.Message);
-            }
-        }
-
-        private static bool LoadSecrets()
-        {
-            if (!File.Exists(AuthFile))
-            {
-                File.WriteAllLines(AuthFile, new[] { "CLIENT_ID_HERE", "CLIENT_SECRET_HERE" });
-                Console.WriteLine("Action Required: Update auth.txt with your API keys.");
-                return false;
-            }
-            var lines = File.ReadAllLines(AuthFile);
-            if (lines.Length < 2 || lines[0].Contains("HERE")) return false;
-            _clientId = lines[0].Trim();
-            _clientSecret = lines[1].Trim();
-            return true;
-        }
-
-        private static async Task<bool> CheckConnectionAsync()
-        {
-            try
-            {
-                var response = await _httpClient.GetAsync("https://api.toodledo.com/3/account/get.php?access_token=" + _tokens.AccessToken);
-                return response.IsSuccessStatusCode;
-            }
-            catch { return false; }
-        }
-
-        private static async Task<bool> RefreshTokenAsync()
-        {
-            var values = new Dictionary<string, string> {
-                { "grant_type", "refresh_token" },
-                { "refresh_token", _tokens.RefreshToken },
-                { "client_id", _clientId },
-                { "client_secret", _clientSecret }
-            };
-            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/account/token.php", new FormUrlEncodedContent(values));
-            if (!response.IsSuccessStatusCode) return false;
-
-            var json = await response.Content.ReadAsStringAsync();
-            var data = JsonSerializer.Deserialize<TokenResponse>(json, _jsonOptions);
-            _tokens.AccessToken = data.access_token;
-            _tokens.RefreshToken = data.refresh_token;
-            SaveTokens();
-            return true;
-        }
-
-        private static async Task AuthorizeAsync()
-        {
-            using var listener = new HttpListener();
-            listener.Prefixes.Add(RedirectUri);
-            listener.Start();
-            Console.WriteLine("Waiting for browser authorization on localhost:5000...");
-
-            string code = null;
-            while (string.IsNullOrEmpty(code))
-            {
-                var context = await listener.GetContextAsync();
-                code = context.Request.QueryString["code"];
-
-                string responseHtml = string.IsNullOrEmpty(code) 
-                    ? "<html><body><h2>Waiting...</h2></body></html>" 
-                    : "<html><body><h2>Authorized! Return to Console.</h2></body></html>";
-
-                byte[] buffer = Encoding.UTF8.GetBytes(responseHtml);
-                context.Response.ContentType = "text/html";
-                context.Response.ContentLength64 = buffer.Length;
-                await context.Response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
-                context.Response.OutputStream.Close();
-            }
-
-            listener.Stop();
-
-            var values = new Dictionary<string, string> {
-                { "grant_type", "authorization_code" },
-                { "code", code },
-                { "redirect_uri", RedirectUri },
-                { "client_id", _clientId },
-                { "client_secret", _clientSecret }
-            };
-            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/account/token.php", new FormUrlEncodedContent(values));
-            var json = await response.Content.ReadAsStringAsync();
-            var data = JsonSerializer.Deserialize<TokenResponse>(json, _jsonOptions);
-            if (data != null) {
-                _tokens.AccessToken = data.access_token;
-                _tokens.RefreshToken = data.refresh_token;
-                SaveTokens();
-            }
+            catch (Exception ex) { Console.WriteLine("\n[FATAL ERROR]: " + ex.Message); }
         }
 
         private static async Task RunCommandLoop()
         {
-            Console.WriteLine("\nCommands: 'list' | 'find [text]' | 'random' | 'done [id]' | 'exit'");
+            Console.WriteLine("\nCommands: 'list' | 'find [text]' | 'add [text]' | 'random' | 'done [id]' | 'exit'");
             while (true)
             {
                 Console.Write("\nToodledo> ");
@@ -179,100 +85,71 @@ namespace ToodledoConsole
                 string lowerInput = cleanInput.ToLower();
 
                 if (lowerInput == "exit") break;
-                
-                if (lowerInput == "list") 
-                {
-                    await ListTasks();
-                }
-                else if (lowerInput == "random") 
-                {
-                    await ShowRandom();
-                }
-                else if (lowerInput.StartsWith("find ")) 
-                {
-                    string term = cleanInput.Substring(5).Trim();
-                    await SearchTasks(term);
-                }
-                else if (lowerInput.StartsWith("done ")) 
-                {
-                    string id = cleanInput.Substring(5).Trim();
-                    await CompleteTask(id);
-                }
-                else 
-                {
-                    Console.WriteLine("Unknown command.");
-                }
+                if (lowerInput == "list") await ListTasks();
+                else if (lowerInput == "random") await ShowRandom();
+                else if (lowerInput.StartsWith("find ")) await SearchTasks(cleanInput.Substring(5).Trim());
+                else if (lowerInput.StartsWith("done ")) await CompleteTask(cleanInput.Substring(5).Trim());
+                else if (lowerInput.StartsWith("add ")) await AddTask(cleanInput.Substring(4).Trim());
+                else Console.WriteLine("Unknown command.");
             }
+        }
+
+        private static async Task AddTask(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title)) return;
+            var taskData = JsonSerializer.Serialize(new[] { new { title = title } });
+            var content = new FormUrlEncodedContent(new[] {
+                new KeyValuePair<string, string>("access_token", _tokens.AccessToken),
+                new KeyValuePair<string, string>("tasks", taskData)
+            });
+            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/tasks/add.php", content);
+            if (response.IsSuccessStatusCode) {
+                Console.WriteLine($"[ADDED]: {title}");
+                await ListTasks();
+            } else Console.WriteLine("Error adding task.");
         }
 
         private static async Task ListTasks()
         {
-            try 
-            {
+            try {
                 var url = "https://api.toodledo.com/3/tasks/get.php?access_token=" + _tokens.AccessToken;
-                var response = await _httpClient.GetAsync(url);
-                var json = await response.Content.ReadAsStringAsync();
-                
+                var json = await _httpClient.GetStringAsync(url);
                 using var doc = JsonDocument.Parse(json);
                 if (doc.RootElement.ValueKind != JsonValueKind.Array) return;
-
                 _cachedTasks.Clear();
-                foreach (var element in doc.RootElement.EnumerateArray()) 
-                {
-                    if (element.TryGetProperty("id", out var idValue)) 
-                    {
-                        string idStr = idValue.ValueKind == JsonValueKind.Number 
-                            ? idValue.GetInt64().ToString() 
-                            : idValue.GetString();
-
-                        string titleStr = element.TryGetProperty("title", out var tProp) 
-                            ? tProp.GetString() 
-                            : "No Title";
-
-                        _cachedTasks.Add(new ToodledoTask { id = idStr, title = titleStr });
+                foreach (var element in doc.RootElement.EnumerateArray()) {
+                    if (element.TryGetProperty("id", out var idValue)) {
+                        _cachedTasks.Add(new ToodledoTask { 
+                            id = idValue.ValueKind == JsonValueKind.Number ? idValue.GetInt64().ToString() : idValue.GetString(),
+                            title = element.TryGetProperty("title", out var tProp) ? tProp.GetString() : "No Title"
+                        });
                     }
                 }
-
                 DisplayTasks(_cachedTasks);
-            }
-            catch (Exception ex) { Console.WriteLine("Error: " + ex.Message); }
+            } catch (Exception ex) { Console.WriteLine("Error: " + ex.Message); }
         }
 
         private static async Task SearchTasks(string keyword)
         {
-            if (string.IsNullOrWhiteSpace(keyword)) {
-                Console.WriteLine("Please provide a search term.");
-                return;
-            }
-
+            if (string.IsNullOrWhiteSpace(keyword)) return;
             if (_cachedTasks.Count == 0) await ListTasks();
-            
             var results = _cachedTasks.FindAll(t => t.title.Contains(keyword, StringComparison.OrdinalIgnoreCase));
-
-            if (results.Count == 0) {
-                Console.WriteLine($"No tasks found matching: '{keyword}'");
-            } else {
-                Console.WriteLine($"\nFound {results.Count} matches:");
-                DisplayTasks(results);
-            }
+            if (results.Count == 0) Console.WriteLine($"No matches for: '{keyword}'");
+            else DisplayTasks(results);
         }
 
         private static void DisplayTasks(List<ToodledoTask> tasks)
         {
             Console.WriteLine(string.Format("\n{0,-12} | {1}", "ID", "Task"));
             Console.WriteLine(new string('-', 45));
-            foreach (var t in tasks) 
-            {
-                Console.WriteLine(string.Format("{0,-12} | {1}", t.id, t.title));
-            }
+            foreach (var t in tasks) Console.WriteLine(string.Format("{0,-12} | {1}", t.id, t.title));
         }
 
         private static async Task ShowRandom()
         {
             if (_cachedTasks.Count == 0) await ListTasks();
             if (_cachedTasks.Count > 0) {
-                var idx = new Random().Next(_cachedTasks.Count);
-                var t = _cachedTasks[idx];
+                var t = _cachedTasks[new Random().Next(_cachedTasks.Count)];
                 Console.WriteLine("\n[PICK]: " + t.title + " (ID: " + t.id + ")");
             }
         }
@@ -288,9 +165,51 @@ namespace ToodledoConsole
             Console.WriteLine(response.IsSuccessStatusCode ? "Task Completed!" : "Error completing task.");
         }
 
+        private static bool LoadSecrets()
+        {
+            if (!File.Exists(AuthFile)) return false;
+            var lines = File.ReadAllLines(AuthFile);
+            if (lines.Length < 2) return false;
+            _clientId = lines[0].Trim(); _clientSecret = lines[1].Trim();
+            return true;
+        }
+
+        private static async Task<bool> CheckConnectionAsync()
+        {
+            try { return (await _httpClient.GetAsync("https://api.toodledo.com/3/account/get.php?access_token=" + _tokens.AccessToken)).IsSuccessStatusCode; }
+            catch { return false; }
+        }
+
+        private static async Task<bool> RefreshTokenAsync()
+        {
+            var values = new Dictionary<string, string> { { "grant_type", "refresh_token" }, { "refresh_token", _tokens.RefreshToken }, { "client_id", _clientId }, { "client_secret", _clientSecret } };
+            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/account/token.php", new FormUrlEncodedContent(values));
+            if (!response.IsSuccessStatusCode) return false;
+            var data = JsonSerializer.Deserialize<TokenResponse>(await response.Content.ReadAsStringAsync(), _jsonOptions);
+            _tokens.AccessToken = data.access_token; _tokens.RefreshToken = data.refresh_token;
+            SaveTokens(); return true;
+        }
+
+        private static async Task AuthorizeAsync()
+        {
+            using var listener = new HttpListener(); listener.Prefixes.Add(RedirectUri); listener.Start();
+            Console.WriteLine("Authorize in browser at localhost:5000...");
+            string code = null;
+            while (string.IsNullOrEmpty(code)) {
+                var context = await listener.GetContextAsync();
+                code = context.Request.QueryString["code"];
+                byte[] buffer = Encoding.UTF8.GetBytes("<html><body><h2>Authorized!</h2></body></html>");
+                context.Response.OutputStream.Write(buffer, 0, buffer.Length);
+                context.Response.OutputStream.Close();
+            }
+            listener.Stop();
+            var values = new Dictionary<string, string> { { "grant_type", "authorization_code" }, { "code", code }, { "redirect_uri", RedirectUri }, { "client_id", _clientId }, { "client_secret", _clientSecret } };
+            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/account/token.php", new FormUrlEncodedContent(values));
+            var data = JsonSerializer.Deserialize<TokenResponse>(await response.Content.ReadAsStringAsync(), _jsonOptions);
+            _tokens.AccessToken = data.access_token; _tokens.RefreshToken = data.refresh_token;
+            SaveTokens();
+        }
+
         private static void SaveTokens() => File.WriteAllText(TokenFile, JsonSerializer.Serialize(_tokens, _jsonOptions));
     }
-
-    public class TokenResponse { public string access_token { get; set; } public string refresh_token { get; set; } }
-    public class ToodledoTask { public string id { get; set; } public string title { get; set; } }
 }
