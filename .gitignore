@@ -1,0 +1,26 @@
+# --- Toodledo Console Secrets ---
+# DO NOT REMOVE THESE - They keep your API keys and session tokens safe
+auth.txt
+token.txt
+
+# --- .NET Build & Binary Folders ---
+[Bb]in/
+[Oo]bj/
+
+# --- User-specific files ---
+*.user
+*.userosscache
+*.sln.docuser
+
+# --- Visual Studio & VS Code IDE ---
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docuser
+
+# --- OS Specific Files ---
+.DS_Store
+thumbs.db
