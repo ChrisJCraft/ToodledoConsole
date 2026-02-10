@@ -37,7 +37,7 @@ namespace ToodledoConsole
         {
             Console.Clear();
             Console.WriteLine("========================================");
-            Console.WriteLine("   TOODLEDO CONSOLE v1.3.1");
+            Console.WriteLine("   TOODLEDO CONSOLE v1.4.1");
             Console.WriteLine("========================================");
 
             try
@@ -168,16 +168,40 @@ namespace ToodledoConsole
 
         private static async Task RunCommandLoop()
         {
-            Console.WriteLine("\nCommands: 'list' | 'random' | 'done [id]' | 'exit'");
+            Console.WriteLine("\nCommands: 'list' | 'find [text]' | 'random' | 'done [id]' | 'exit'");
             while (true)
             {
                 Console.Write("\nToodledo> ");
-                var input = Console.ReadLine()?.Trim().ToLower() ?? "";
-                if (input == "exit") break;
-                if (input == "list") await ListTasks();
-                else if (input == "random") await ShowRandom();
-                else if (input.StartsWith("done ")) await CompleteTask(input.Replace("done ", ""));
-                else Console.WriteLine("Unknown command.");
+                string input = Console.ReadLine();
+                if (string.IsNullOrWhiteSpace(input)) continue;
+
+                string cleanInput = input.Trim();
+                string lowerInput = cleanInput.ToLower();
+
+                if (lowerInput == "exit") break;
+                
+                if (lowerInput == "list") 
+                {
+                    await ListTasks();
+                }
+                else if (lowerInput == "random") 
+                {
+                    await ShowRandom();
+                }
+                else if (lowerInput.StartsWith("find ")) 
+                {
+                    string term = cleanInput.Substring(5).Trim();
+                    await SearchTasks(term);
+                }
+                else if (lowerInput.StartsWith("done ")) 
+                {
+                    string id = cleanInput.Substring(5).Trim();
+                    await CompleteTask(id);
+                }
+                else 
+                {
+                    Console.WriteLine("Unknown command.");
+                }
             }
         }
 
@@ -209,14 +233,38 @@ namespace ToodledoConsole
                     }
                 }
 
-                Console.WriteLine(string.Format("\n{0,-12} | {1}", "ID", "Task"));
-                Console.WriteLine(new string('-', 45));
-                foreach (var t in _cachedTasks) 
-                {
-                    Console.WriteLine(string.Format("{0,-12} | {1}", t.id, t.title));
-                }
+                DisplayTasks(_cachedTasks);
             }
             catch (Exception ex) { Console.WriteLine("Error: " + ex.Message); }
+        }
+
+        private static async Task SearchTasks(string keyword)
+        {
+            if (string.IsNullOrWhiteSpace(keyword)) {
+                Console.WriteLine("Please provide a search term.");
+                return;
+            }
+
+            if (_cachedTasks.Count == 0) await ListTasks();
+            
+            var results = _cachedTasks.FindAll(t => t.title.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+
+            if (results.Count == 0) {
+                Console.WriteLine($"No tasks found matching: '{keyword}'");
+            } else {
+                Console.WriteLine($"\nFound {results.Count} matches:");
+                DisplayTasks(results);
+            }
+        }
+
+        private static void DisplayTasks(List<ToodledoTask> tasks)
+        {
+            Console.WriteLine(string.Format("\n{0,-12} | {1}", "ID", "Task"));
+            Console.WriteLine(new string('-', 45));
+            foreach (var t in tasks) 
+            {
+                Console.WriteLine(string.Format("{0,-12} | {1}", t.id, t.title));
+            }
         }
 
         private static async Task ShowRandom()
