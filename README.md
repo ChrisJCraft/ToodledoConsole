@@ -4,6 +4,7 @@ A lightweight, modular C# CLI tool for managing your Toodledo tasks directly fro
 ## Features
 - **Project Organization**: Code split into `Models.cs`, `AuthService.cs`, `TaskService.cs`, and `Program.cs` for clean architecture.
 - **Persistent Sessions**: Log in once, stay authenticated for 30 days via Refresh Tokens.
+- **Automatic Browser Launch**: Initiates the authentication flow automatically for a seamless user experience.
 - **Secure Secrets**: Client IDs are stored locally in `auth.txt` and never pushed to Git (added to `.gitignore`).
 
 ## Commands
@@ -25,7 +26,7 @@ A lightweight, modular C# CLI tool for managing your Toodledo tasks directly fro
    ```bash
    dotnet run
    ```
-4. **Authorize**: Follow the on-screen instructions to authorize the app in your browser locally at `localhost:5000`.
+4. **Authorize**: A browser window will open automatically. If not, visit `http://localhost:5000` to authorize.
 
 ## Project Structure
 - **Program.cs**: Main entry point and command handling loop.

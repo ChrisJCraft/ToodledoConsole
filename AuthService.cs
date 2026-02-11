@@ -79,22 +79,101 @@ namespace ToodledoConsole
 
         public async Task AuthorizeAsync()
         {
-            using var listener = new HttpListener(); listener.Prefixes.Add(RedirectUri); listener.Start();
+            using var listener = new HttpListener();
+            listener.Prefixes.Add(RedirectUri);
+            listener.Start();
+            
             Console.WriteLine("Authorize in browser at localhost:5000...");
+            
+            // Open the browser automatically
+            try { 
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = RedirectUri, UseShellExecute = true }); 
+            } catch { }
+
             string code = null;
-            while (string.IsNullOrEmpty(code)) {
+            while (string.IsNullOrEmpty(code))
+            {
                 var context = await listener.GetContextAsync();
-                code = context.Request.QueryString["code"];
-                byte[] buffer = Encoding.UTF8.GetBytes("<html><body><h2>Authorized!</h2></body></html>");
-                context.Response.OutputStream.Write(buffer, 0, buffer.Length);
-                context.Response.OutputStream.Close();
+                var request = context.Request;
+                var response = context.Response;
+
+                if (request.Url.AbsolutePath == "/")
+                {
+                    code = request.QueryString["code"];
+                    if (!string.IsNullOrEmpty(code))
+                    {
+                        // User has returned with code
+                        string successHtml = GetSuccessHtml();
+                        byte[] buffer = Encoding.UTF8.GetBytes(successHtml);
+                        response.ContentType = "text/html; charset=utf-8";
+                        response.ContentEncoding = Encoding.UTF8;
+                        response.ContentLength64 = buffer.Length;
+                        response.OutputStream.Write(buffer, 0, buffer.Length);
+                        response.OutputStream.Close();
+                    }
+                    else
+                    {
+                        // Redirect to Toodledo Auth
+                        string scope = "basic%20tasks%20notes%20lists%20write";
+                        string state = Guid.NewGuid().ToString("N"); // Simple state
+                        string authUrl = $"https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id={_clientId}&state={state}&scope={scope}";
+                        
+                        response.Redirect(authUrl);
+                        response.OutputStream.Close();
+                    }
+                }
+                else
+                {
+                   // Ignore other requests (favicon, etc)
+                   response.StatusCode = 404;
+                   response.Close();
+                }
             }
             listener.Stop();
-            var values = new Dictionary<string, string> { { "grant_type", "authorization_code" }, { "code", code }, { "redirect_uri", RedirectUri }, { "client_id", _clientId }, { "client_secret", _clientSecret } };
-            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/account/token.php", new FormUrlEncodedContent(values));
-            var data = JsonSerializer.Deserialize<TokenResponse>(await response.Content.ReadAsStringAsync(), _jsonOptions);
-            _tokens.AccessToken = data.access_token; _tokens.RefreshToken = data.refresh_token;
-            SaveTokens();
+
+            var values = new Dictionary<string, string> { 
+                { "grant_type", "authorization_code" }, 
+                { "code", code }, 
+                { "redirect_uri", RedirectUri }, 
+                { "client_id", _clientId }, 
+                { "client_secret", _clientSecret } 
+            };
+            
+            var apiResponse = await _httpClient.PostAsync("https://api.toodledo.com/3/account/token.php", new FormUrlEncodedContent(values));
+            if (apiResponse.IsSuccessStatusCode)
+            {
+                 var json = await apiResponse.Content.ReadAsStringAsync();
+                 var data = JsonSerializer.Deserialize<TokenResponse>(json, _jsonOptions);
+                 _tokens.AccessToken = data.access_token; 
+                 _tokens.RefreshToken = data.refresh_token; // Note: Toodledo might not return refresh token on first auth without offline_access or similar, but let's assume it does for now as per previous code
+                 SaveTokens();
+            }
+            else
+            {
+                 Console.WriteLine("Error exchanging code for token.");
+            }
+        }
+
+        private string GetSuccessHtml()
+        {
+            return @"
+                <html>
+                <head>
+                    <style>
+                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 50px; background-color: #f0f2f5; color: #333; }
+                        .container { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: inline-block; max-width: 400px; }
+                        h1 { color: #28a745; margin-bottom: 20px; }
+                        p { font-size: 18px; margin-bottom: 30px; color: #666; }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <h1>Authorization Successful!</h1>
+                        <p>You have successfully logged in to Toodledo Console.</p>
+                        <p>You can close this window now and return to the application.</p>
+                    </div>
+                </body>
+                </html>";
         }
 
         private void SaveTokens() => File.WriteAllText(TokenFile, JsonSerializer.Serialize(_tokens, _jsonOptions));

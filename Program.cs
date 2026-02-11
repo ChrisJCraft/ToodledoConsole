@@ -41,7 +41,8 @@ namespace ToodledoConsole
 
                 if (!authenticated)
                 {
-                    Console.WriteLine("\n[AUTH REQUIRED]");
+                    Console.WriteLine("1. A browser window should open automatically.");
+                    Console.WriteLine("2. If not, visit http://localhost:5000/ to authorize.");
                     await _authService.AuthorizeAsync();
                 }
 
@@ -102,9 +103,9 @@ namespace ToodledoConsole
 
         private static void DisplayTasks(List<ToodledoTask> tasks)
         {
-            Console.WriteLine(string.Format("\n{0,-12} | {1}", "ID", "Task"));
+            Console.WriteLine($"\n{"ID",-12} | " + "Task");
             Console.WriteLine(new string('-', 45));
-            foreach (var t in tasks) Console.WriteLine(string.Format("{0,-12} | {1}", t.id, t.title));
+            foreach (var t in tasks) Console.WriteLine($"{t.id,-12} | {t.title}");
         }
 
         private static async Task ShowRandom()
@@ -112,7 +113,7 @@ namespace ToodledoConsole
             if (_cachedTasks.Count == 0) await ListTasks();
             if (_cachedTasks.Count > 0) {
                 var t = _cachedTasks[new Random().Next(_cachedTasks.Count)];
-                Console.WriteLine("\n[PICK]: " + t.title + " (ID: " + t.id + ")");
+                Console.WriteLine($"\n[PICK]: {t.title} (ID: {t.id})");
             }
         }
 
