@@ -30,7 +30,12 @@ namespace ToodledoConsole
             {
                 _authService = new AuthService(_httpClient, _jsonOptions);
                 _taskService = new TaskService(_httpClient, _authService, _jsonOptions);
-                if (!_authService.LoadSecrets()) return;
+                if (!_authService.LoadSecrets())
+                {
+                    Console.WriteLine($"Error: {AuthService.AuthFile} not found or invalid.");
+                    Console.WriteLine("Please create 'auth.txt' with Client ID on line 1 and Client Secret on line 2.");
+                    return;
+                }
 
                 bool authenticated = await _authService.InitializeAsync();
 

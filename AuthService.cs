@@ -11,7 +11,7 @@ namespace ToodledoConsole
 {
     public class AuthService
     {
-        private const string AuthFile = "auth.txt";
+        public const string AuthFile = "auth.txt";
         private const string TokenFile = "token.txt";
         private const string RedirectUri = "http://localhost:5000/";
 
