@@ -11,6 +11,7 @@ A lightweight, modular C# CLI tool for managing your Toodledo tasks directly fro
 - `add [text]`: Create a new task.
 - `find [text]`: Search for tasks by title.
 - `done [id]`: Mark a task as completed.
+- `help`: Show available commands.
 - `random`: Pick a random task when you're feeling indecisive.
 - `exit`: Close the application.
 

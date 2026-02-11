@@ -53,7 +53,7 @@ namespace ToodledoConsole
 
         private static async Task RunCommandLoop()
         {
-            Console.WriteLine("\nCommands: 'list' | 'find [text]' | 'add [text]' | 'random' | 'done [id]' | 'exit'");
+            DisplayHelp();
             while (true)
             {
                 Console.Write("\nToodledo> ");
@@ -64,7 +64,8 @@ namespace ToodledoConsole
                 string lowerInput = cleanInput.ToLower();
 
                 if (lowerInput == "exit") break;
-                if (lowerInput == "list") await ListTasks();
+                if (lowerInput == "help") DisplayHelp();
+                else if (lowerInput == "list") await ListTasks();
                 else if (lowerInput == "random") await ShowRandom();
                 else if (lowerInput.StartsWith("find ")) await SearchTasks(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("done ")) await CompleteTask(cleanInput.Substring(5).Trim());
@@ -119,6 +120,10 @@ namespace ToodledoConsole
         {
             if (await _taskService.CompleteTaskAsync(id)) Console.WriteLine("Task Completed!");
             else Console.WriteLine("Error completing task.");
+        }
+        private static void DisplayHelp()
+        {
+            Console.WriteLine("\nCommands: 'list' | 'find [text]' | 'add [text]' | 'random' | 'done [id]' | 'help' | 'exit'");
         }
     }
 }
