@@ -6,6 +6,16 @@
     <RootNamespace>Toodledo_Console</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Version>1.5.1</Version>
+    <Authors>Chris Craft</Authors>
+    <Company>Chris Craft</Company>
+    <Product>Toodledo Console</Product>
+    <Description>A lightweight, modern C# CLI tool for managing Toodledo tasks from the terminal</Description>
+    <Copyright>Copyright © 2026 Chris Craft</Copyright>
+    <RepositoryUrl>https://github.com/ChrisJCraft/ToodledoConsole</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>toodledo;cli;productivity;task-management;dotnet;csharp</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
