@@ -2,6 +2,7 @@
 # DO NOT REMOVE THESE - They keep your API keys and session tokens safe
 auth.txt
 token.txt
+random_state.json
 
 # --- .NET Build & Binary Folders ---
 [Bb]in/
