@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Spectre.Console;
 
 namespace ToodledoConsole
 {
@@ -23,93 +24,183 @@ namespace ToodledoConsole
 
         static async Task Main(string[] args)
         {
-            Console.Clear();
-            Console.WriteLine("========================================");
-            Console.WriteLine("   TOODLEDO CONSOLE v1.5.1");
-            Console.WriteLine("========================================");
+            AnsiConsole.Clear();
+            
+            // Display styled banner
+            var rule = new Rule("[cyan]TOODLEDO CONSOLE[/]");
+            rule.Style = Style.Parse("cyan");
+            AnsiConsole.Write(rule);
+            
+            var versionText = new Markup("[dim]v1.5.1[/]");
+            AnsiConsole.Write(versionText);
+            AnsiConsole.WriteLine();
+            AnsiConsole.WriteLine();
 
             try
             {
                 _authService = new AuthService(_httpClient, _jsonOptions);
                 _taskService = new TaskService(_httpClient, _authService, _jsonOptions);
+                
                 if (!_authService.LoadSecrets())
                 {
-                    Console.WriteLine($"Error: {AuthService.AuthFile} not found or invalid.");
-                    Console.WriteLine("Please create 'auth.txt' with Client ID on line 1 and Client Secret on line 2.");
+                    AnsiConsole.MarkupLine($"[red]Error:[/] {AuthService.AuthFile} not found or invalid.");
+                    AnsiConsole.MarkupLine("[yellow]Please create 'auth.txt' with Client ID on line 1 and Client Secret on line 2.[/]");
                     return;
                 }
 
-                bool authenticated = await _authService.InitializeAsync();
+                bool authenticated = await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("cyan"))
+                    .StartAsync("[cyan]Initializing authentication...[/]", async ctx => 
+                    {
+                        return await _authService.InitializeAsync();
+                    });
 
                 if (!authenticated)
                 {
-                    Console.WriteLine("1. A browser window should open automatically.");
-                    Console.WriteLine("2. If not, visit http://localhost:5000/ to authorize.");
-                    await _authService.AuthorizeAsync();
+                    AnsiConsole.MarkupLine("[yellow]1. A browser window should open automatically.[/]");
+                    AnsiConsole.MarkupLine("[yellow]2. If not, visit http://localhost:5000/ to authorize.[/]");
+                    
+                    await AnsiConsole.Status()
+                        .Spinner(Spinner.Known.Dots)
+                        .SpinnerStyle(Style.Parse("yellow"))
+                        .StartAsync("[yellow]Waiting for authorization...[/]", async ctx =>
+                        {
+                            await _authService.AuthorizeAsync();
+                        });
                 }
 
-                Console.WriteLine("Success! Connection Verified.");
+                AnsiConsole.MarkupLine("[green]✓ Success! Connection Verified.[/]");
+                AnsiConsole.WriteLine();
+                
                 await RunCommandLoop();
             }
-            catch (Exception ex) { Console.WriteLine("\n[FATAL ERROR]: " + ex.Message); }
+            catch (Exception ex) 
+            { 
+                AnsiConsole.MarkupLine($"[red]✗ FATAL ERROR:[/] {ex.Message}"); 
+            }
         }
 
         private static async Task RunCommandLoop()
         {
             DisplayHelp();
+            
             while (true)
             {
-                Console.Write("\nToodledo> ");
-                string input = Console.ReadLine();
+                var input = AnsiConsole.Prompt(
+                    new TextPrompt<string>("[cyan]Toodledo>[/] ")
+                        .AllowEmpty()
+                );
+                
                 if (string.IsNullOrWhiteSpace(input)) continue;
 
                 string cleanInput = input.Trim();
                 string lowerInput = cleanInput.ToLower();
 
-                if (lowerInput == "exit") break;
+                if (lowerInput == "exit") 
+                {
+                    AnsiConsole.MarkupLine("[yellow]Goodbye![/]");
+                    break;
+                }
+                
                 if (lowerInput == "help") DisplayHelp();
                 else if (lowerInput == "list") await ListTasks();
                 else if (lowerInput == "random") await ShowRandom();
                 else if (lowerInput.StartsWith("find ")) await SearchTasks(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("done ")) await CompleteTask(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("add ")) await AddTask(cleanInput.Substring(4).Trim());
-                else Console.WriteLine("Unknown command.");
+                else AnsiConsole.MarkupLine("[red]Unknown command. Type 'help' for available commands.[/]");
             }
         }
 
         private static async Task AddTask(string title)
         {
             if (string.IsNullOrWhiteSpace(title)) return;
-            if (await _taskService.AddTaskAsync(title)) {
-                Console.WriteLine($"[ADDED]: {title}");
+            
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("cyan"))
+                .StartAsync($"[cyan]Adding task...[/]", async ctx =>
+                {
+                    return await _taskService.AddTaskAsync(title);
+                });
+            
+            if (success) 
+            {
+                AnsiConsole.MarkupLine($"[green]✓ ADDED:[/] {title}");
                 await ListTasks();
-            } else Console.WriteLine("Error adding task.");
+            } 
+            else 
+            {
+                AnsiConsole.MarkupLine("[red]✗ Error adding task.[/]");
+            }
         }
 
         private static async Task ListTasks()
         {
-            try {
-                _cachedTasks = await _taskService.GetTasksAsync();
+            try 
+            {
+                _cachedTasks = await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("cyan"))
+                    .StartAsync("[cyan]Loading tasks...[/]", async ctx =>
+                    {
+                        return await _taskService.GetTasksAsync();
+                    });
+                
                 DisplayTasks(_cachedTasks);
-            } catch (Exception ex) { Console.WriteLine("Error: " + ex.Message); }
+            } 
+            catch (Exception ex) 
+            { 
+                AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message}"); 
+            }
         }
 
         private static async Task SearchTasks(string keyword)
         {
             if (string.IsNullOrWhiteSpace(keyword)) return;
             if (_cachedTasks.Count == 0) await ListTasks();
+            
             var results = _cachedTasks.FindAll(t => t.title.Contains(keyword, StringComparison.OrdinalIgnoreCase));
-            if (results.Count == 0) Console.WriteLine($"No matches for: '{keyword}'");
-            else DisplayTasks(results);
+            
+            if (results.Count == 0) 
+            {
+                AnsiConsole.MarkupLine($"[yellow]No matches for: '{keyword}'[/]");
+            }
+            else 
+            {
+                AnsiConsole.MarkupLine($"[cyan]Search results for:[/] [white]{keyword}[/]");
+                DisplayTasks(results);
+            }
         }
 
         private static void DisplayTasks(List<ToodledoTask> tasks)
         {
-            Console.WriteLine($"\n{"ID",-12} | " + "Task");
-            Console.WriteLine(new string('-', 45));
-            foreach (var t in tasks) Console.WriteLine($"{t.id,-12} | {t.title}");
-            Console.WriteLine(new string('-', 45));
-            Console.WriteLine($"Total Tasks: {tasks.Count}");
+            if (tasks.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No tasks found.[/]");
+                return;
+            }
+
+            var table = new Table();
+            table.Border(TableBorder.Rounded);
+            table.BorderStyle(Style.Parse("cyan"));
+            
+            table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
+            table.AddColumn(new TableColumn("[cyan]Task[/]").LeftAligned());
+
+            foreach (var task in tasks)
+            {
+                table.AddRow(
+                    $"[dim]{task.id}[/]",
+                    $"[white]{task.title}[/]"
+                );
+            }
+
+            AnsiConsole.WriteLine();
+            AnsiConsole.Write(table);
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine($"[dim]Total Tasks: {tasks.Count}[/]");
         }
 
         private static async Task ShowRandom()
@@ -127,7 +218,7 @@ namespace ToodledoConsole
             {
                 _seenTaskIds.Clear();
                 candidates = _cachedTasks.ToList();
-                Console.WriteLine("[CYCLE COMPLETE - Starting fresh random order]");
+                AnsiConsole.MarkupLine("[yellow]🔄 CYCLE COMPLETE - Starting fresh random order[/]");
             }
             
             // Pick random task from candidates
@@ -135,8 +226,19 @@ namespace ToodledoConsole
             _seenTaskIds.Add(t.id);
             SaveRandomState();
             
-            Console.WriteLine($"\n[PICK]: {t.title} (ID: {t.id})");
-            Console.WriteLine($"Progress: {_seenTaskIds.Count}/{_cachedTasks.Count} tasks shown this cycle");
+            // Display in a styled panel
+            var panel = new Panel($"[white]{t.title}[/]\n\n[dim]ID: {t.id}[/]")
+            {
+                Header = new PanelHeader("[green]🎯 RANDOM PICK[/]", Justify.Center),
+                Border = BoxBorder.Double,
+                BorderStyle = Style.Parse("green"),
+                Padding = new Padding(2, 1)
+            };
+            
+            AnsiConsole.WriteLine();
+            AnsiConsole.Write(panel);
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine($"[dim]Progress: {_seenTaskIds.Count}/{_cachedTasks.Count} tasks shown this cycle[/]");
         }
 
         private static void LoadRandomState()
@@ -165,17 +267,56 @@ namespace ToodledoConsole
 
         private static async Task CompleteTask(string id)
         {
-            if (await _taskService.CompleteTaskAsync(id)) 
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("green"))
+                .StartAsync($"[green]Completing task...[/]", async ctx =>
+                {
+                    return await _taskService.CompleteTaskAsync(id);
+                });
+            
+            if (success) 
             {
-                Console.WriteLine("Task Completed!");
+                AnsiConsole.MarkupLine("[green]✓ Task Completed![/]");
                 _cachedTasks.RemoveAll(t => t.id == id);
-                Console.WriteLine($"{_cachedTasks.Count} Tasks Remaining.");
+                _seenTaskIds.Remove(id);
+                SaveRandomState();
+                AnsiConsole.MarkupLine($"[cyan]{_cachedTasks.Count} Tasks Remaining.[/]");
             }
-            else Console.WriteLine("Error completing task.");
+            else 
+            {
+                AnsiConsole.MarkupLine("[red]✗ Error completing task.[/]");
+            }
         }
+        
         private static void DisplayHelp()
         {
-            Console.WriteLine("\nCommands: 'list' | 'find [text]' | 'add [text]' | 'random' | 'done [id]' | 'help' | 'exit'");
+            var table = new Table();
+            table.Border(TableBorder.Rounded);
+            table.BorderStyle(Style.Parse("cyan"));
+            table.HideHeaders();
+            
+            table.AddColumn(new TableColumn("").Width(12));
+            table.AddColumn(new TableColumn(""));
+
+            table.AddRow("[cyan]list[/]", "[dim]Display all active tasks[/]");
+            table.AddRow("[cyan]add[/] [white]<text>[/]", "[dim]Create a new task[/]");
+            table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
+            table.AddRow("[cyan]random[/]", "[dim]Show a random task[/]");
+            table.AddRow("[cyan]done[/] [white]<id>[/]", "[dim]Mark a task as completed[/]");
+            table.AddRow("[cyan]help[/]", "[dim]Show this help message[/]");
+            table.AddRow("[cyan]exit[/]", "[dim]Exit the application[/]");
+
+            AnsiConsole.WriteLine();
+            var panel = new Panel(table)
+            {
+                Header = new PanelHeader("[yellow]Available Commands[/]", Justify.Left),
+                Border = BoxBorder.Rounded,
+                BorderStyle = Style.Parse("yellow")
+            };
+            
+            AnsiConsole.Write(panel);
+            AnsiConsole.WriteLine();
         }
     }
 }
