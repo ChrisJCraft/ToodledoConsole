@@ -123,6 +123,7 @@ namespace ToodledoConsole
             {
                 Console.WriteLine("Task Completed!");
                 _cachedTasks.RemoveAll(t => t.id == id);
+                Console.WriteLine($"{_cachedTasks.Count} Tasks Remaining.");
             }
             else Console.WriteLine("Error completing task.");
         }
