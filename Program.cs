@@ -79,7 +79,7 @@ namespace ToodledoConsole
             }
             catch (Exception ex) 
             { 
-                AnsiConsole.MarkupLine($"[red]✗ FATAL ERROR:[/] {ex.Message}"); 
+                AnsiConsole.MarkupLine($"[red]✗ FATAL ERROR:[/] {ex.Message.EscapeMarkup()}"); 
             }
         }
 
@@ -155,7 +155,7 @@ namespace ToodledoConsole
             } 
             catch (Exception ex) 
             { 
-                AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message}"); 
+                AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message.EscapeMarkup()}"); 
             }
         }
 
@@ -190,7 +190,7 @@ namespace ToodledoConsole
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]✗ Filter error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]✗ Filter error:[/] {ex.Message.EscapeMarkup()}");
             }
         }
 
@@ -420,7 +420,7 @@ namespace ToodledoConsole
             table.AddColumn(new TableColumn(""));
 
             table.AddRow("[cyan]list[/]", "[dim]Display all active tasks[/]");
-            table.AddRow("[cyan]filter[/] [white][k:v][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");
+            table.AddRow("[cyan]filter[/] [white][[k:v]][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");
             table.AddRow("[cyan]add[/] [white]<text>[/]", "[dim]Create a new task[/]");
             table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
             table.AddRow("[cyan]random[/]", "[dim]Show a random task[/]");
