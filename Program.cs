@@ -119,7 +119,11 @@ namespace ToodledoConsole
 
         private static async Task CompleteTask(string id)
         {
-            if (await _taskService.CompleteTaskAsync(id)) Console.WriteLine("Task Completed!");
+            if (await _taskService.CompleteTaskAsync(id)) 
+            {
+                Console.WriteLine("Task Completed!");
+                _cachedTasks.RemoveAll(t => t.id == id);
+            }
             else Console.WriteLine("Error completing task.");
         }
         private static void DisplayHelp()

@@ -32,7 +32,7 @@ namespace ToodledoConsole
 
         public async Task<List<ToodledoTask>> GetTasksAsync()
         {
-            var url = "https://api.toodledo.com/3/tasks/get.php?access_token=" + _authService.AccessToken;
+            var url = "https://api.toodledo.com/3/tasks/get.php?access_token=" + _authService.AccessToken + "&comp=0";
             var json = await _httpClient.GetStringAsync(url);
             using var doc = JsonDocument.Parse(json);
             if (doc.RootElement.ValueKind != JsonValueKind.Array) return new List<ToodledoTask>();
