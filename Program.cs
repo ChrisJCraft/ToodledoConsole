@@ -16,6 +16,7 @@ namespace ToodledoConsole
     {
         private static AuthService _authService;
         private static TaskService _taskService;
+        private static FilterService _filterService;
         private static readonly HttpClient _httpClient = new HttpClient();
         private static List<ToodledoTask> _cachedTasks = new List<ToodledoTask>();
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -40,6 +41,7 @@ namespace ToodledoConsole
             {
                 _authService = new AuthService(_httpClient, _jsonOptions);
                 _taskService = new TaskService(_httpClient, _authService, _jsonOptions);
+                _filterService = new FilterService(_taskService);
                 
                 if (!_authService.LoadSecrets())
                 {
@@ -106,6 +108,7 @@ namespace ToodledoConsole
                 if (lowerInput == "help") DisplayHelp();
                 else if (lowerInput == "list") await ListTasks();
                 else if (lowerInput == "random") await ShowRandom();
+                else if (lowerInput.StartsWith("filter ")) await FilterTasks(cleanInput.Substring(7).Trim());
                 else if (lowerInput.StartsWith("find ")) await SearchTasks(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("done ")) await CompleteTask(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("add ")) await AddTask(cleanInput.Substring(4).Trim());
@@ -154,6 +157,123 @@ namespace ToodledoConsole
             { 
                 AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message}"); 
             }
+        }
+
+        private static async Task FilterTasks(string filterExpression)
+        {
+            if (string.IsNullOrWhiteSpace(filterExpression))
+            {
+                await ListTasks();
+                return;
+            }
+
+            try
+            {
+                var criteria = await _filterService.ParseFilterExpression(filterExpression);
+                var queryParams = _filterService.BuildApiQueryString(criteria);
+
+                var tasks = await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("cyan"))
+                    .StartAsync("[cyan]Filtering tasks...[/]", async ctx =>
+                    {
+                        return await _taskService.GetTasksAsync(queryParams);
+                    });
+
+                var filteredResults = _filterService.ApplyClientSideFilters(tasks, criteria);
+                
+                // Get total count for the footer
+                var totalTasksCount = _cachedTasks.Count > 0 ? _cachedTasks.Count : (await _taskService.GetTasksAsync()).Count;
+                if (_cachedTasks.Count == 0) _cachedTasks = tasks; 
+
+                DisplayFilteredTasks(filteredResults, criteria, totalTasksCount);
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Filter error:[/] {ex.Message}");
+            }
+        }
+
+        private static void DisplayFilteredTasks(List<ToodledoTask> tasks, FilterCriteria criteria, int totalCount)
+        {
+            // 1. The Header: Active Filters Panel
+            var filterInfo = new List<string>();
+            if (criteria.Priority.HasValue) filterInfo.Add($"[yellow]Priority:[/] {GetPriorityName(criteria.Priority.Value)}");
+            if (!string.IsNullOrEmpty(criteria.FolderName)) filterInfo.Add($"[green]Folder:[/] {criteria.FolderName}");
+            if (!string.IsNullOrEmpty(criteria.ContextName)) filterInfo.Add($"[blue]Context:[/] @{criteria.ContextName}");
+            if (criteria.Starred.HasValue) filterInfo.Add($"[gold1]Starred:[/] {(criteria.Starred == 1 ? "Yes" : "No")}");
+            if (!string.IsNullOrEmpty(criteria.DueDateShortcut)) filterInfo.Add($"[purple]Due:[/] {criteria.DueDateShortcut}");
+            if (!string.IsNullOrEmpty(criteria.SearchTerm)) filterInfo.Add($"[silver]Search:[/] \"{criteria.SearchTerm}\"");
+
+            var filterPanel = new Panel(string.Join(" [dim]|[/] ", filterInfo))
+            {
+                Header = new PanelHeader("[yellow]Active Filters[/]"),
+                Border = BoxBorder.Rounded,
+                BorderStyle = Style.Parse("yellow"),
+                Padding = new Padding(1, 0)
+            };
+
+            AnsiConsole.WriteLine();
+            AnsiConsole.Write(filterPanel);
+
+            if (tasks.Count == 0)
+            {
+                // 3. The "No Match" Blessing
+                AnsiConsole.WriteLine();
+                AnsiConsole.MarkupLine("[orange1]No tasks match those filters. Try being less picky![/]");
+                AnsiConsole.WriteLine();
+                return;
+            }
+
+            // 2. The Table
+            var table = new Table();
+            table.Border(TableBorder.Rounded);
+            table.BorderStyle(Style.Parse("cyan"));
+            
+            table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
+            table.AddColumn(new TableColumn("[cyan]P[/]").Centered());
+            table.AddColumn(new TableColumn("[cyan]Task[/]").LeftAligned());
+
+            foreach (var task in tasks)
+            {
+                table.AddRow(
+                    $"[dim]{task.id}[/]",
+                    GetPriorityMarkup(task.priority),
+                    $"[white]{task.title}[/]"
+                );
+            }
+
+            AnsiConsole.Write(table);
+
+            // 2. The Live Counter
+            AnsiConsole.MarkupLine($"[dim]Showing {tasks.Count} of {totalCount} tasks[/]");
+            AnsiConsole.WriteLine();
+        }
+
+        private static string GetPriorityName(int priority)
+        {
+            return priority switch
+            {
+                3 => "Top",
+                2 => "High",
+                1 => "Medium",
+                0 => "Low",
+                -1 => "Negative",
+                _ => "Unknown"
+            };
+        }
+
+        private static string GetPriorityMarkup(int priority)
+        {
+            return priority switch
+            {
+                3 => "[red]![/]",
+                2 => "[orange1]![/]",
+                1 => "[yellow]![/]",
+                0 => "[dim]-[/]",
+                -1 => "[dim]?[/]",
+                _ => "[dim] [/]"
+            };
         }
 
         private static async Task SearchTasks(string keyword)
@@ -300,6 +420,7 @@ namespace ToodledoConsole
             table.AddColumn(new TableColumn(""));
 
             table.AddRow("[cyan]list[/]", "[dim]Display all active tasks[/]");
+            table.AddRow("[cyan]filter[/] [white][k:v][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");
             table.AddRow("[cyan]add[/] [white]<text>[/]", "[dim]Create a new task[/]");
             table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
             table.AddRow("[cyan]random[/]", "[dim]Show a random task[/]");
