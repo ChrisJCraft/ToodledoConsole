@@ -18,6 +18,8 @@ namespace ToodledoConsole
         private static readonly HttpClient _httpClient = new HttpClient();
         private static List<ToodledoTask> _cachedTasks = new List<ToodledoTask>();
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        private static readonly string RandomStateFile = "random_state.json";
+        private static HashSet<string> _seenTaskIds = new HashSet<string>();
 
         static async Task Main(string[] args)
         {
@@ -113,10 +115,52 @@ namespace ToodledoConsole
         private static async Task ShowRandom()
         {
             if (_cachedTasks.Count == 0) await ListTasks();
-            if (_cachedTasks.Count > 0) {
-                var t = _cachedTasks[new Random().Next(_cachedTasks.Count)];
-                Console.WriteLine($"\n[PICK]: {t.title} (ID: {t.id})");
+            if (_cachedTasks.Count == 0) return;
+
+            LoadRandomState();
+            
+            // Get candidates (tasks not yet seen)
+            var candidates = _cachedTasks.Where(t => !_seenTaskIds.Contains(t.id)).ToList();
+            
+            // If all tasks have been seen, reset the cycle
+            if (candidates.Count == 0)
+            {
+                _seenTaskIds.Clear();
+                candidates = _cachedTasks.ToList();
+                Console.WriteLine("[CYCLE COMPLETE - Starting fresh random order]");
             }
+            
+            // Pick random task from candidates
+            var t = candidates[new Random().Next(candidates.Count)];
+            _seenTaskIds.Add(t.id);
+            SaveRandomState();
+            
+            Console.WriteLine($"\n[PICK]: {t.title} (ID: {t.id})");
+            Console.WriteLine($"Progress: {_seenTaskIds.Count}/{_cachedTasks.Count} tasks shown this cycle");
+        }
+
+        private static void LoadRandomState()
+        {
+            if (File.Exists(RandomStateFile))
+            {
+                try
+                {
+                    var json = File.ReadAllText(RandomStateFile);
+                    var ids = JsonSerializer.Deserialize<List<string>>(json);
+                    _seenTaskIds = ids != null ? new HashSet<string>(ids) : new HashSet<string>();
+                }
+                catch { _seenTaskIds = new HashSet<string>(); }
+            }
+        }
+
+        private static void SaveRandomState()
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(_seenTaskIds.ToList());
+                File.WriteAllText(RandomStateFile, json);
+            }
+            catch { /* Silently fail */ }
         }
 
         private static async Task CompleteTask(string id)
