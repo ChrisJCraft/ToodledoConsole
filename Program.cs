@@ -106,6 +106,8 @@ namespace ToodledoConsole
             Console.WriteLine($"\n{"ID",-12} | " + "Task");
             Console.WriteLine(new string('-', 45));
             foreach (var t in tasks) Console.WriteLine($"{t.id,-12} | {t.title}");
+            Console.WriteLine(new string('-', 45));
+            Console.WriteLine($"Total Tasks: {tasks.Count}");
         }
 
         private static async Task ShowRandom()
