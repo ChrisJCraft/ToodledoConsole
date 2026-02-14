@@ -52,6 +52,18 @@ namespace ToodledoConsole
                 {
                     if (int.TryParse(part.Substring(2), out int status)) criteria.Status = status;
                 }
+                else if (part.StartsWith("#"))
+                {
+                    var newTag = part.Substring(1);
+                    if (string.IsNullOrEmpty(criteria.Tag))
+                    {
+                        criteria.Tag = newTag;
+                    }
+                    else
+                    {
+                        criteria.Tag += "," + newTag;
+                    }
+                }
                 else
                 {
                     searchTerms.Add(part);
@@ -87,6 +99,15 @@ namespace ToodledoConsole
             if (task.star != 0) parts.Add($"*:{task.star}");
             
             if (task.status != 0) parts.Add($"s:{task.status}");
+
+            if (!string.IsNullOrEmpty(task.tag))
+            {
+                var tags = task.tag.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var tag in tags)
+                {
+                    parts.Add($"#{tag.Trim()}");
+                }
+            }
 
             // Note: duedate shortcut reconstruction is harder as we only stored the shortcut in criteria,
             // not a specific date mapping back to a shortcut easily without logic.

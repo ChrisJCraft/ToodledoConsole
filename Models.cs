@@ -25,6 +25,7 @@ namespace ToodledoConsole
         public int star { get; set; }
         public long duedate { get; set; }
         public int status { get; set; }
+        public string tag { get; set; }
     }
 
     public class ToodledoFolder
@@ -49,9 +50,10 @@ namespace ToodledoConsole
         public int? Starred { get; set; }
         public string DueDateShortcut { get; set; }
         public int? Status { get; set; }
+        public string Tag { get; set; }
         public string SearchTerm { get; set; }
         public bool IsActive => Priority.HasValue || FolderId.HasValue || ContextId.HasValue || 
                             Starred.HasValue || !string.IsNullOrEmpty(DueDateShortcut) || 
-                            Status.HasValue || !string.IsNullOrEmpty(SearchTerm);
+                            Status.HasValue || !string.IsNullOrEmpty(Tag) || !string.IsNullOrEmpty(SearchTerm);
     }
 }

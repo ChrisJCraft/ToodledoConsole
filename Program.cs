@@ -115,6 +115,7 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("done ")) await CompleteTask(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("add ")) await AddTask(cleanInput.Substring(4).Trim());
                 else if (lowerInput.StartsWith("edit ")) await EditTask(cleanInput.Substring(5).Trim());
+                else if (lowerInput.StartsWith("tag ")) await TagTask(cleanInput.Substring(4).Trim());
                 else AnsiConsole.MarkupLine("[red]Unknown command. Type 'help' for available commands.[/]");
             }
         }
@@ -337,13 +338,15 @@ namespace ToodledoConsole
             table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
             table.AddColumn(new TableColumn("[cyan]P[/]").Centered());
             table.AddColumn(new TableColumn("[cyan]Task[/]").LeftAligned());
+            table.AddColumn(new TableColumn("[cyan]Tags[/]").LeftAligned());
 
             foreach (var task in tasks)
             {
                 table.AddRow(
                     $"[dim]{task.id}[/]",
                     GetPriorityMarkup(task.priority),
-                    $"[white]{task.title}[/]"
+                    $"[white]{task.title}[/]",
+                    $"[silver dim]{task.tag}[/]"
                 );
             }
 
@@ -412,12 +415,14 @@ namespace ToodledoConsole
             
             table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
             table.AddColumn(new TableColumn("[cyan]Task[/]").LeftAligned());
+            table.AddColumn(new TableColumn("[cyan]Tags[/]").LeftAligned());
 
             foreach (var task in tasks)
             {
                 table.AddRow(
                     $"[dim]{task.id}[/]",
-                    $"[white]{task.title}[/]"
+                    $"[white]{task.title}[/]",
+                    $"[silver dim]{task.tag}[/]"
                 );
             }
 
@@ -589,6 +594,41 @@ namespace ToodledoConsole
             }
         }
         
+        private static async Task TagTask(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return;
+
+            var parts = input.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2)
+            {
+                AnsiConsole.MarkupLine("[red]Usage: tag <id> <tags>[/]");
+                return;
+            }
+
+            string id = parts[0];
+            string tags = parts[1];
+
+            var criteria = new FilterCriteria { Tag = tags };
+
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("cyan"))
+                .StartAsync("[cyan]Updating tags...[/]", async ctx =>
+                {
+                    return await _taskService.UpdateTaskAsync(id, criteria);
+                });
+
+            if (success)
+            {
+                AnsiConsole.MarkupLine("[green]✓ Tags Updated![/]");
+                await ListTasks();
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[red]✗ Error updating tags.[/]");
+            }
+        }
+        
         private static void DisplayHelp()
         {
             var table = new Table();
@@ -596,12 +636,13 @@ namespace ToodledoConsole
             table.BorderStyle(Style.Parse("cyan"));
             table.HideHeaders();
             
-            table.AddColumn(new TableColumn("").Width(12));
+            table.AddColumn(new TableColumn("").Width(20));
             table.AddColumn(new TableColumn(""));
 
             table.AddRow("[cyan]list[/]", "[dim]Display all active tasks[/]");
     table.AddRow("[cyan]add[/] [white]<text>[/]", "[dim]Create task (ex: add Buy milk p:3 @Store !:today)[/]");
     table.AddRow("[cyan]edit[/] [white]<id>[/]", "[dim]Edit task using shadow prompt shorthand[/]");
+    table.AddRow("[cyan]tag[/] [white]<id> <tags>[/]", "[dim]Quickly update tags for a task[/]");
     table.AddRow("[cyan]done[/] [white]<id>[/]", "[dim]Mark a task as completed[/]");
     table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
     table.AddRow("[cyan]filter[/] [white][[k:v]][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");

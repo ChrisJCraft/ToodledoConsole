@@ -31,6 +31,7 @@ namespace ToodledoConsole
             if (criteria.ContextId.HasValue) taskObject["context"] = criteria.ContextId.Value;
             if (criteria.Starred.HasValue) taskObject["star"] = criteria.Starred.Value;
             if (criteria.Status.HasValue) taskObject["status"] = criteria.Status.Value;
+            if (!string.IsNullOrEmpty(criteria.Tag)) taskObject["tag"] = criteria.Tag;
 
             var taskData = JsonSerializer.Serialize(new[] { taskObject });
             var content = new FormUrlEncodedContent(new[] {
@@ -44,7 +45,7 @@ namespace ToodledoConsole
 
         public async Task<List<ToodledoTask>> GetTasksAsync(string queryParams = "")
         {
-            var fields = "folder,context,star,priority,duedate,status";
+            var fields = "folder,context,star,priority,duedate,status,tag";
             var url = $"https://api.toodledo.com/3/tasks/get.php?access_token={_authService.AccessToken}&comp=0&fields={fields}{queryParams}";
             var json = await _httpClient.GetStringAsync(url);
             using var doc = JsonDocument.Parse(json);
@@ -67,6 +68,7 @@ namespace ToodledoConsole
                     if (element.TryGetProperty("star", out var sProp)) task.star = sProp.GetInt32();
                     if (element.TryGetProperty("duedate", out var dProp)) task.duedate = dProp.GetInt64();
                     if (element.TryGetProperty("status", out var stProp)) task.status = stProp.GetInt32();
+                    if (element.TryGetProperty("tag", out var tagProp)) task.tag = tagProp.GetString();
 
                     tasks.Add(task);
             }
@@ -119,7 +121,7 @@ namespace ToodledoConsole
 
         public async Task<ToodledoTask> GetTaskAsync(string id)
         {
-            var fields = "folder,context,star,priority,duedate,status";
+            var fields = "folder,context,star,priority,duedate,status,tag";
             var url = $"https://api.toodledo.com/3/tasks/get.php?access_token={_authService.AccessToken}&id={id}&fields={fields}";
             var json = await _httpClient.GetStringAsync(url);
             using var doc = JsonDocument.Parse(json);
@@ -140,7 +142,8 @@ namespace ToodledoConsole
                         context = element.TryGetProperty("context", out var cProp) ? cProp.GetInt64() : 0,
                         star = element.TryGetProperty("star", out var sProp) ? sProp.GetInt32() : 0,
                         duedate = element.TryGetProperty("duedate", out var dProp) ? dProp.GetInt64() : 0,
-                        status = element.TryGetProperty("status", out var stProp) ? stProp.GetInt32() : 0
+                        status = element.TryGetProperty("status", out var stProp) ? stProp.GetInt32() : 0,
+                        tag = element.TryGetProperty("tag", out var tagProp) ? tagProp.GetString() : ""
                     };
                 }
             }
@@ -161,6 +164,7 @@ namespace ToodledoConsole
             if (criteria.ContextId.HasValue) taskObject["context"] = criteria.ContextId.Value;
             if (criteria.Starred.HasValue) taskObject["star"] = criteria.Starred.Value;
             if (criteria.Status.HasValue) taskObject["status"] = criteria.Status.Value;
+            if (!string.IsNullOrEmpty(criteria.Tag)) taskObject["tag"] = criteria.Tag;
 
             var taskData = JsonSerializer.Serialize(new[] { taskObject });
             var content = new FormUrlEncodedContent(new[] {
