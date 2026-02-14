@@ -19,9 +19,20 @@ namespace ToodledoConsole
             _jsonOptions = jsonOptions;
         }
 
-        public async Task<bool> AddTaskAsync(string title)
+        public async Task<bool> AddTaskAsync(FilterCriteria criteria)
         {
-            var taskData = JsonSerializer.Serialize(new[] { new { title = title } });
+            var taskObject = new Dictionary<string, object>
+            {
+                { "title", criteria.SearchTerm ?? "New Task" }
+            };
+
+            if (criteria.Priority.HasValue) taskObject["priority"] = criteria.Priority.Value;
+            if (criteria.FolderId.HasValue) taskObject["folder"] = criteria.FolderId.Value;
+            if (criteria.ContextId.HasValue) taskObject["context"] = criteria.ContextId.Value;
+            if (criteria.Starred.HasValue) taskObject["star"] = criteria.Starred.Value;
+            if (criteria.Status.HasValue) taskObject["status"] = criteria.Status.Value;
+
+            var taskData = JsonSerializer.Serialize(new[] { taskObject });
             var content = new FormUrlEncodedContent(new[] {
                 new KeyValuePair<string, string>("access_token", _authService.AccessToken),
                 new KeyValuePair<string, string>("tasks", taskData)
@@ -29,6 +40,7 @@ namespace ToodledoConsole
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/tasks/add.php", content);
             return response.IsSuccessStatusCode;
         }
+
 
         public async Task<List<ToodledoTask>> GetTasksAsync(string queryParams = "")
         {

@@ -116,21 +116,37 @@ namespace ToodledoConsole
             }
         }
 
-        private static async Task AddTask(string title)
+        private static async Task AddTask(string input)
         {
-            if (string.IsNullOrWhiteSpace(title)) return;
+            if (string.IsNullOrWhiteSpace(input)) return;
+
+            var criteria = await _filterService.ParseFilterExpression(input);
+            string title = criteria.SearchTerm ?? "New Task";
             
             bool success = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots)
                 .SpinnerStyle(Style.Parse("cyan"))
                 .StartAsync($"[cyan]Adding task...[/]", async ctx =>
                 {
-                    return await _taskService.AddTaskAsync(title);
+                    return await _taskService.AddTaskAsync(criteria);
                 });
             
             if (success) 
             {
-                AnsiConsole.MarkupLine($"[green]✓ ADDED:[/] {title}");
+                AnsiConsole.MarkupLine($"[green]✓ ADDED:[/] {title.EscapeMarkup()}");
+                
+                // Show applied attributes
+                var attributes = new List<string>();
+                if (criteria.Priority.HasValue) attributes.Add($"[yellow]Priority:[/] {GetPriorityName(criteria.Priority.Value)}");
+                if (!string.IsNullOrEmpty(criteria.FolderName)) attributes.Add($"[green]Folder:[/] {criteria.FolderName}");
+                if (!string.IsNullOrEmpty(criteria.ContextName)) attributes.Add($"[blue]Context:[/] @{criteria.ContextName}");
+                if (criteria.Starred.HasValue) attributes.Add($"[gold1]Starred:[/] {(criteria.Starred == 1 ? "Yes" : "No")}");
+                
+                if (attributes.Count > 0)
+                {
+                    AnsiConsole.MarkupLine($"[dim]Attributes:[/] {string.Join(" [dim]|[/] ", attributes)}");
+                }
+
                 await ListTasks();
             } 
             else 
@@ -138,6 +154,7 @@ namespace ToodledoConsole
                 AnsiConsole.MarkupLine("[red]✗ Error adding task.[/]");
             }
         }
+
 
         private static async Task ListTasks()
         {
@@ -420,13 +437,13 @@ namespace ToodledoConsole
             table.AddColumn(new TableColumn(""));
 
             table.AddRow("[cyan]list[/]", "[dim]Display all active tasks[/]");
-            table.AddRow("[cyan]filter[/] [white][[k:v]][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");
-            table.AddRow("[cyan]add[/] [white]<text>[/]", "[dim]Create a new task[/]");
-            table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
-            table.AddRow("[cyan]random[/]", "[dim]Show a random task[/]");
-            table.AddRow("[cyan]done[/] [white]<id>[/]", "[dim]Mark a task as completed[/]");
-            table.AddRow("[cyan]help[/]", "[dim]Show this help message[/]");
-            table.AddRow("[cyan]exit[/]", "[dim]Exit the application[/]");
+    table.AddRow("[cyan]add[/] [white]<text>[/]", "[dim]Create task (ex: add Buy milk p:3 @Store !:today)[/]");
+    table.AddRow("[cyan]done[/] [white]<id>[/]", "[dim]Mark a task as completed[/]");
+    table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
+    table.AddRow("[cyan]filter[/] [white][[k:v]][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");
+    table.AddRow("[cyan]random[/]", "[dim]Show a random task[/]");
+    table.AddRow("[cyan]help[/]", "[dim]Show this help message[/]");
+    table.AddRow("[cyan]exit[/]", "[dim]Exit the application[/]");
 
             AnsiConsole.WriteLine();
             var panel = new Panel(table)
