@@ -30,6 +30,7 @@ A lightweight, modern C# CLI tool for managing your [Toodledo](https://www.toodl
 | `tag [id] [tags]` | Quickly update tags for a task |
 | `note [id] [text]` | Quickly update note for a task |
 | `done [id]` | Mark a task as completed |
+| `delete [id]` | Permanently remove a task |
 | `find [text]` | Search for tasks by title or keyword |
 | `filter [k:v]` | Apply powerful filters (e.g., `filter p:1 f:Inbox`) |
 | `random` | Pick a random task |

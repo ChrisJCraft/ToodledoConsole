@@ -118,6 +118,7 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("view ")) await ViewTask(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("tag ")) await TagTask(cleanInput.Substring(4).Trim());
                 else if (lowerInput.StartsWith("note ")) await NoteTask(cleanInput.Substring(5).Trim());
+                else if (lowerInput.StartsWith("delete ")) await DeleteTask(cleanInput.Substring(7).Trim());
                 else AnsiConsole.MarkupLine("[red]Unknown command. Type 'help' for available commands.[/]");
             }
         }
@@ -697,6 +698,45 @@ namespace ToodledoConsole
                 AnsiConsole.MarkupLine("[red]✗ Error updating note.[/]");
             }
         }
+
+        private static async Task DeleteTask(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return;
+
+            // Optional: Fetch task bits to show what's being deleted
+            var task = await _taskService.GetTaskAsync(id);
+            if (task == null)
+            {
+                AnsiConsole.MarkupLine("[red]✗ Task not found.[/]");
+                return;
+            }
+
+            AnsiConsole.MarkupLine($"[yellow]Are you sure you want to delete:[/] [white]{task.title}[/]? [dim](y/n)[/]");
+            var key = Console.ReadKey(true);
+            if (key.Key != ConsoleKey.Y)
+            {
+                AnsiConsole.MarkupLine("[yellow]Delete cancelled.[/]");
+                return;
+            }
+
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("red"))
+                .StartAsync("[red]Deleting task...[/]", async ctx =>
+                {
+                    return await _taskService.DeleteTaskAsync(id);
+                });
+
+            if (success)
+            {
+                AnsiConsole.MarkupLine("[green]✓ Task Deleted![/]");
+                await ListTasks();
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[red]✗ Error deleting task.[/]");
+            }
+        }
         
         private static void DisplayHelp()
         {
@@ -715,6 +755,7 @@ namespace ToodledoConsole
     table.AddRow("[cyan]tag[/] [white]<id> <tags>[/]", "[dim]Quickly update tags for a task[/]");
     table.AddRow("[cyan]note[/] [white]<id> <text>[/]", "[dim]Quickly update note for a task[/]");
     table.AddRow("[cyan]done[/] [white]<id>[/]", "[dim]Mark a task as completed[/]");
+    table.AddRow("[cyan]delete[/] [white]<id>[/]", "[dim]Permanently remove a task[/]");
     table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
     table.AddRow("[cyan]filter[/] [white][[k:v]][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");
     table.AddRow("[cyan]random[/]", "[dim]Show a random task[/]");

@@ -189,5 +189,16 @@ namespace ToodledoConsole
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/tasks/edit.php", content);
             return response.IsSuccessStatusCode;
         }
+
+        public async Task<bool> DeleteTaskAsync(string id)
+        {
+            var taskData = "[\"" + id + "\"]";
+            var content = new FormUrlEncodedContent(new[] {
+                new KeyValuePair<string, string>("access_token", _authService.AccessToken),
+                new KeyValuePair<string, string>("tasks", taskData)
+            });
+            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/tasks/delete.php", content);
+            return response.IsSuccessStatusCode;
+        }
     }
 }
