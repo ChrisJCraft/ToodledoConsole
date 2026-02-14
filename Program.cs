@@ -17,6 +17,9 @@ namespace ToodledoConsole
         private static AuthService _authService;
         private static TaskService _taskService;
         private static FilterService _filterService;
+        private static List<string> _commandHistory = new List<string>();
+        private static int _historyIndex = -1;
+        private static string _currentInput = "";
         private static readonly HttpClient _httpClient = new HttpClient();
         private static List<ToodledoTask> _cachedTasks = new List<ToodledoTask>();
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -89,10 +92,7 @@ namespace ToodledoConsole
             
             while (true)
             {
-                var input = AnsiConsole.Prompt(
-                    new TextPrompt<string>("[cyan]Toodledo>[/] ")
-                        .AllowEmpty()
-                );
+                var input = ReadLineWithHistory("[cyan]Toodledo> [/]");
                 
                 if (string.IsNullOrWhiteSpace(input)) continue;
 
@@ -113,6 +113,90 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("done ")) await CompleteTask(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("add ")) await AddTask(cleanInput.Substring(4).Trim());
                 else AnsiConsole.MarkupLine("[red]Unknown command. Type 'help' for available commands.[/]");
+            }
+        }
+
+        private static string ReadLineWithHistory(string prompt)
+        {
+            AnsiConsole.Markup(prompt);
+            var input = new StringBuilder();
+            _historyIndex = _commandHistory.Count;
+            _currentInput = "";
+
+            while (true)
+            {
+                var key = Console.ReadKey(true);
+
+                if (key.Key == ConsoleKey.Enter)
+                {
+                    Console.WriteLine();
+                    var result = input.ToString();
+                    if (!string.IsNullOrWhiteSpace(result))
+                    {
+                        _commandHistory.Add(result);
+                    }
+                    return result;
+                }
+                else if (key.Key == ConsoleKey.UpArrow)
+                {
+                    if (_commandHistory.Count > 0 && _historyIndex > 0)
+                    {
+                        if (_historyIndex == _commandHistory.Count)
+                        {
+                            _currentInput = input.ToString();
+                        }
+
+                        _historyIndex--;
+                        ClearCurrentLine(prompt, input.Length);
+                        input.Clear();
+                        input.Append(_commandHistory[_historyIndex]);
+                        AnsiConsole.Markup(input.ToString().EscapeMarkup());
+                    }
+                }
+                else if (key.Key == ConsoleKey.DownArrow)
+                {
+                    if (_historyIndex < _commandHistory.Count - 1)
+                    {
+                        _historyIndex++;
+                        ClearCurrentLine(prompt, input.Length);
+                        input.Clear();
+                        input.Append(_commandHistory[_historyIndex]);
+                        AnsiConsole.Markup(input.ToString().EscapeMarkup());
+                    }
+                    else if (_historyIndex == _commandHistory.Count - 1)
+                    {
+                        _historyIndex++;
+                        ClearCurrentLine(prompt, input.Length);
+                        input.Clear();
+                        input.Append(_currentInput);
+                        AnsiConsole.Markup(input.ToString().EscapeMarkup());
+                    }
+                }
+                else if (key.Key == ConsoleKey.Backspace)
+                {
+                    if (input.Length > 0)
+                    {
+                        input.Remove(input.Length - 1, 1);
+                        Console.Write("\b \b");
+                    }
+                }
+                else if (key.KeyChar != '\u0000' && !char.IsControl(key.KeyChar))
+                {
+                    input.Append(key.KeyChar);
+                    Console.Write(key.KeyChar);
+                }
+            }
+        }
+
+        private static void ClearCurrentLine(string prompt, int inputLength)
+        {
+            // Go back to the start of the prompt
+            // Spectres Console doesn't have a simple way to clear the current line without knowing prompt length
+            // But we are in a simple console here.
+            // Actually simpler approach: backspace the input and clear it
+            for (int i = 0; i < inputLength; i++)
+            {
+                Console.Write("\b \b");
             }
         }
 
