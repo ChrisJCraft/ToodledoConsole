@@ -116,6 +116,7 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("add ")) await AddTask(cleanInput.Substring(4).Trim());
                 else if (lowerInput.StartsWith("edit ")) await EditTask(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("tag ")) await TagTask(cleanInput.Substring(4).Trim());
+                else if (lowerInput.StartsWith("note ")) await NoteTask(cleanInput.Substring(5).Trim());
                 else AnsiConsole.MarkupLine("[red]Unknown command. Type 'help' for available commands.[/]");
             }
         }
@@ -550,6 +551,8 @@ namespace ToodledoConsole
                 table.AddRow("[dim]Folder:[/]", $"[green]{folders.FirstOrDefault(f => f.id == task.folder)?.name ?? "Unknown"}[/]");
             if (task.context != 0) 
                 table.AddRow("[dim]Context:[/]", $"[blue]@{contexts.FirstOrDefault(c => c.id == task.context)?.name ?? "Unknown"}[/]");
+            if (!string.IsNullOrEmpty(task.note))
+                table.AddRow("[dim]Note:[/]", $"[silver]{task.note.EscapeMarkup()}[/]");
 
             var panel = new Panel(table)
             {
@@ -629,6 +632,41 @@ namespace ToodledoConsole
             }
         }
         
+        private static async Task NoteTask(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return;
+
+            var parts = input.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2)
+            {
+                AnsiConsole.MarkupLine("[red]Usage: note <id> <text>[/]");
+                return;
+            }
+
+            string id = parts[0];
+            string note = parts[1];
+
+            var criteria = new FilterCriteria { Note = note };
+
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("cyan"))
+                .StartAsync("[cyan]Updating note...[/]", async ctx =>
+                {
+                    return await _taskService.UpdateTaskAsync(id, criteria);
+                });
+
+            if (success)
+            {
+                AnsiConsole.MarkupLine("[green]✓ Note Updated![/]");
+                await ListTasks();
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[red]✗ Error updating note.[/]");
+            }
+        }
+        
         private static void DisplayHelp()
         {
             var table = new Table();
@@ -643,6 +681,7 @@ namespace ToodledoConsole
     table.AddRow("[cyan]add[/] [white]<text>[/]", "[dim]Create task (ex: add Buy milk p:3 @Store !:today)[/]");
     table.AddRow("[cyan]edit[/] [white]<id>[/]", "[dim]Edit task using shadow prompt shorthand[/]");
     table.AddRow("[cyan]tag[/] [white]<id> <tags>[/]", "[dim]Quickly update tags for a task[/]");
+    table.AddRow("[cyan]note[/] [white]<id> <text>[/]", "[dim]Quickly update note for a task[/]");
     table.AddRow("[cyan]done[/] [white]<id>[/]", "[dim]Mark a task as completed[/]");
     table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
     table.AddRow("[cyan]filter[/] [white][[k:v]][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");

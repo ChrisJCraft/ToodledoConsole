@@ -9,11 +9,14 @@ A lightweight, modern C# CLI tool for managing your [Toodledo](https://www.toodl
 ## ✨ Features
 
 - **🎨 Beautiful CLI Interface**: Powered by Spectre.Console with rich colors, tables, and formatting
+- **⚡ Detailed Task Control**: Set priority, folder, context, due dates, tags, and notes directly from the command line
+- **🏷️ Tag Support**: Organise tasks with tags using `#tag` shorthand and a dedicated `tag` command
+- **📝 Note Management**: Add detailed notes to tasks with `n:"..."` shorthand and a dedicated `note` command
 - **🔐 Secure OAuth2 Authentication**: Industry-standard OAuth2 flow with automatic token refresh
 - **💾 Persistent Sessions**: Log in once, stay authenticated for 30 days via refresh tokens
 - **🚀 Automatic Browser Launch**: Seamless authentication flow with automatic browser handling
 - **🎲 Smart Random Task Selection**: Get a random task with intelligent tracking to avoid repetition
-- **🔍 Powerful Search**: Find tasks quickly by title
+- **🔍 Powerful Search**: Find tasks quickly by title or keyword
 - **📦 Modular Architecture**: Clean separation of concerns with dedicated services for auth and tasks
 - **🔒 Secure by Default**: API credentials stored locally and never committed to version control
 
@@ -22,10 +25,14 @@ A lightweight, modern C# CLI tool for managing your [Toodledo](https://www.toodl
 | Command | Description |
 |---------|-------------|
 | `list` | Display all current tasks in a formatted table |
-| `add [text]` | Create a new task with the specified title |
-| `find [text]` | Search for tasks by title (case-insensitive) |
-| `done [id]` | Mark a task as completed and remove it from your list |
-| `random` | Pick a random task (intelligently avoids recently shown tasks) |
+| `add [text]` | Create a new task (supports shorthands) |
+| `edit [id]` | Edit task using "Shadow Prompt" shorthand mode |
+| `tag [id] [tags]` | Quickly update tags for a task |
+| `note [id] [text]` | Quickly update note for a task |
+| `done [id]` | Mark a task as completed |
+| `find [text]` | Search for tasks by title or keyword |
+| `filter [k:v]` | Apply powerful filters (e.g., `filter p:1 f:Inbox`) |
+| `random` | Pick a random task |
 | `help` | Show available commands and usage information |
 | `exit` | Close the application |
 
@@ -97,6 +104,23 @@ On first run:
 5. The application will save your access token for future use
 
 > **Note**: The OAuth2 redirect URI is configured for `http://localhost:5000/callback`. Make sure this matches what you registered with Toodledo.
+
+## ⚡ Power-User Shorthands
+
+Use these shorthands with the `add` and `edit` commands for rapid task entry:
+
+| Shorthand | Description | Example |
+|-----------|-------------|---------|
+| `p:[0-3]` | Priority (0: Low, 1: Medium, 2: High, 3: Top) | `add Milk p:2` |
+| `f:[name]` | Folder Name | `add Script f:Work` |
+| `@[name]` | Context Name | `add Bread @Store` |
+| `!:[shortcut]`| Due Date (today, tomorrow, next week) | `add Taxes !:today` |
+| `#[tag]` | Add a tag (can be used multiple times) | `add Release #v1 #beta` |
+| `n:"[text]"` | Add a note (best in quotes) | `add Jira n:"Fix bug"` |
+| `*` | Star the task | `add Urgent *` |
+
+> **Pro Tip**: You can combine multiple shorthands in a single command!
+> `add Buy milk p:3 @Store f:Personal !:today #groceries n:"Get whole milk"`
 
 ## 🔧 How It Works
 

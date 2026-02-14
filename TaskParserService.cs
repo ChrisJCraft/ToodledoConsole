@@ -64,6 +64,15 @@ namespace ToodledoConsole
                         criteria.Tag += "," + newTag;
                     }
                 }
+                else if (part.StartsWith("n:"))
+                {
+                    var note = part.Substring(2);
+                    if (note.StartsWith("\"") && note.EndsWith("\"") && note.Length >= 2)
+                    {
+                        note = note.Substring(1, note.Length - 2);
+                    }
+                    criteria.Note = note;
+                }
                 else
                 {
                     searchTerms.Add(part);
@@ -107,6 +116,11 @@ namespace ToodledoConsole
                 {
                     parts.Add($"#{tag.Trim()}");
                 }
+            }
+
+            if (!string.IsNullOrEmpty(task.note))
+            {
+                parts.Add($"n:\"{task.note}\"");
             }
 
             // Note: duedate shortcut reconstruction is harder as we only stored the shortcut in criteria,
