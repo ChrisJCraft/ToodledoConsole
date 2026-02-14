@@ -17,6 +17,7 @@ namespace ToodledoConsole
         private static AuthService _authService;
         private static TaskService _taskService;
         private static FilterService _filterService;
+        private static TaskParserService _taskParserService;
         private static List<string> _commandHistory = new List<string>();
         private static int _historyIndex = -1;
         private static string _currentInput = "";
@@ -44,7 +45,8 @@ namespace ToodledoConsole
             {
                 _authService = new AuthService(_httpClient, _jsonOptions);
                 _taskService = new TaskService(_httpClient, _authService, _jsonOptions);
-                _filterService = new FilterService(_taskService);
+                _taskParserService = new TaskParserService(_taskService);
+                _filterService = new FilterService(_taskService, _taskParserService);
                 
                 if (!_authService.LoadSecrets())
                 {
@@ -112,6 +114,7 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("find ")) await SearchTasks(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("done ")) await CompleteTask(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("add ")) await AddTask(cleanInput.Substring(4).Trim());
+                else if (lowerInput.StartsWith("edit ")) await EditTask(cleanInput.Substring(5).Trim());
                 else AnsiConsole.MarkupLine("[red]Unknown command. Type 'help' for available commands.[/]");
             }
         }
@@ -204,7 +207,7 @@ namespace ToodledoConsole
         {
             if (string.IsNullOrWhiteSpace(input)) return;
 
-            var criteria = await _filterService.ParseFilterExpression(input);
+            var criteria = await _taskParserService.ParseAsync(input);
             string title = criteria.SearchTerm ?? "New Task";
             
             bool success = await AnsiConsole.Status()
@@ -509,6 +512,82 @@ namespace ToodledoConsole
                 AnsiConsole.MarkupLine("[red]✗ Error completing task.[/]");
             }
         }
+
+        private static async Task EditTask(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return;
+
+            var task = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("cyan"))
+                .StartAsync("[cyan]Fetching task details...[/]", async ctx =>
+                {
+                    return await _taskService.GetTaskAsync(id);
+                });
+
+            if (task == null)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Task not found: {id}[/]");
+                return;
+            }
+
+            var folders = await _taskService.GetFoldersAsync();
+            var contexts = await _taskService.GetContextsAsync();
+
+            // Display current task details (Affordance view)
+            var table = new Table().NoBorder().HideHeaders();
+            table.AddColumn("K"); table.AddColumn("V");
+            table.AddRow("[dim]ID:[/]", $"[dim]{task.id}[/]");
+            table.AddRow("[dim]Title:[/]", $"[white]{task.title.EscapeMarkup()}[/]");
+            table.AddRow("[dim]Priority:[/]", GetPriorityMarkup(task.priority));
+            
+            if (task.folder != 0) 
+                table.AddRow("[dim]Folder:[/]", $"[green]{folders.FirstOrDefault(f => f.id == task.folder)?.name ?? "Unknown"}[/]");
+            if (task.context != 0) 
+                table.AddRow("[dim]Context:[/]", $"[blue]@{contexts.FirstOrDefault(c => c.id == task.context)?.name ?? "Unknown"}[/]");
+
+            var panel = new Panel(table)
+            {
+                Header = new PanelHeader("[yellow]Editing Task[/]"),
+                Border = BoxBorder.Rounded,
+                BorderStyle = Style.Parse("yellow"),
+                Padding = new Padding(1, 0)
+            };
+            AnsiConsole.WriteLine();
+            AnsiConsole.Write(panel);
+
+            // Reconstruct raw string for Shadow Prompt
+            string rawString = _taskParserService.ToRawString(task, folders, contexts);
+
+            // Shadow Prompt: Use Ask with DefaultValue
+            var editedInput = AnsiConsole.Ask<string>("[cyan]Edit: [/]", rawString);
+
+            if (string.IsNullOrWhiteSpace(editedInput) || editedInput == rawString)
+            {
+                AnsiConsole.MarkupLine("[yellow]No changes made.[/]");
+                return;
+            }
+
+            var criteria = await _taskParserService.ParseAsync(editedInput);
+            
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("cyan"))
+                .StartAsync("[cyan]Updating task...[/]", async ctx =>
+                {
+                    return await _taskService.UpdateTaskAsync(id, criteria);
+                });
+
+            if (success)
+            {
+                AnsiConsole.MarkupLine("[green]✓ Task Updated![/]");
+                await ListTasks();
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[red]✗ Error updating task.[/]");
+            }
+        }
         
         private static void DisplayHelp()
         {
@@ -522,6 +601,7 @@ namespace ToodledoConsole
 
             table.AddRow("[cyan]list[/]", "[dim]Display all active tasks[/]");
     table.AddRow("[cyan]add[/] [white]<text>[/]", "[dim]Create task (ex: add Buy milk p:3 @Store !:today)[/]");
+    table.AddRow("[cyan]edit[/] [white]<id>[/]", "[dim]Edit task using shadow prompt shorthand[/]");
     table.AddRow("[cyan]done[/] [white]<id>[/]", "[dim]Mark a task as completed[/]");
     table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
     table.AddRow("[cyan]filter[/] [white][[k:v]][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");

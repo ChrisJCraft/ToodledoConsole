@@ -8,80 +8,17 @@ namespace ToodledoConsole
     public class FilterService
     {
         private readonly TaskService _taskService;
-        private List<ToodledoFolder> _folders;
-        private List<ToodledoContext> _contexts;
+        private readonly TaskParserService _taskParserService;
 
-        public FilterService(TaskService taskService)
+        public FilterService(TaskService taskService, TaskParserService taskParserService)
         {
             _taskService = taskService;
+            _taskParserService = taskParserService;
         }
 
         public async Task<FilterCriteria> ParseFilterExpression(string input)
         {
-            var criteria = new FilterCriteria();
-            if (string.IsNullOrWhiteSpace(input)) return criteria;
-
-            var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            var searchTerms = new List<string>();
-
-            foreach (var part in parts)
-            {
-                if (part.StartsWith("p:"))
-                {
-                    if (int.TryParse(part.Substring(2), out int p)) criteria.Priority = p;
-                }
-                else if (part.StartsWith("f:"))
-                {
-                    criteria.FolderName = part.Substring(2);
-                    criteria.FolderId = await GetFolderIdByName(criteria.FolderName);
-                }
-                else if (part.StartsWith("@"))
-                {
-                    criteria.ContextName = part.Substring(1);
-                    criteria.ContextId = await GetContextIdByName(criteria.ContextName);
-                }
-                else if (part.StartsWith("*"))
-                {
-                    if (int.TryParse(part.Substring(1).Trim(':'), out int s)) criteria.Starred = s;
-                }
-                else if (part.StartsWith("!:"))
-                {
-                    criteria.DueDateShortcut = part.Substring(2).ToLower();
-                }
-                else if (part.StartsWith("s:"))
-                {
-                    if (int.TryParse(part.Substring(2), out int status)) criteria.Status = status;
-                }
-                else
-                {
-                    searchTerms.Add(part);
-                }
-            }
-
-            if (searchTerms.Any())
-            {
-                criteria.SearchTerm = string.Join(" ", searchTerms);
-            }
-
-            return criteria;
-        }
-
-        private async Task<long?> GetFolderIdByName(string name)
-        {
-            if (_folders == null)
-            {
-                _folders = await _taskService.GetFoldersAsync();
-            }
-            return _folders.FirstOrDefault(f => f.name.Equals(name, StringComparison.OrdinalIgnoreCase))?.id;
-        }
-
-        private async Task<long?> GetContextIdByName(string name)
-        {
-            if (_contexts == null)
-            {
-                _contexts = await _taskService.GetContextsAsync();
-            }
-            return _contexts.FirstOrDefault(c => c.name.Equals(name, StringComparison.OrdinalIgnoreCase))?.id;
+            return await _taskParserService.ParseAsync(input);
         }
 
         public List<ToodledoTask> ApplyClientSideFilters(List<ToodledoTask> tasks, FilterCriteria criteria)
