@@ -115,6 +115,7 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("done ")) await CompleteTask(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("add ")) await AddTask(cleanInput.Substring(4).Trim());
                 else if (lowerInput.StartsWith("edit ")) await EditTask(cleanInput.Substring(5).Trim());
+                else if (lowerInput.StartsWith("view ")) await ViewTask(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("tag ")) await TagTask(cleanInput.Substring(4).Trim());
                 else if (lowerInput.StartsWith("note ")) await NoteTask(cleanInput.Substring(5).Trim());
                 else AnsiConsole.MarkupLine("[red]Unknown command. Type 'help' for available commands.[/]");
@@ -539,30 +540,8 @@ namespace ToodledoConsole
 
             var folders = await _taskService.GetFoldersAsync();
             var contexts = await _taskService.GetContextsAsync();
-
-            // Display current task details (Affordance view)
-            var table = new Table().NoBorder().HideHeaders();
-            table.AddColumn("K"); table.AddColumn("V");
-            table.AddRow("[dim]ID:[/]", $"[dim]{task.id}[/]");
-            table.AddRow("[dim]Title:[/]", $"[white]{task.title.EscapeMarkup()}[/]");
-            table.AddRow("[dim]Priority:[/]", GetPriorityMarkup(task.priority));
             
-            if (task.folder != 0) 
-                table.AddRow("[dim]Folder:[/]", $"[green]{folders.FirstOrDefault(f => f.id == task.folder)?.name ?? "Unknown"}[/]");
-            if (task.context != 0) 
-                table.AddRow("[dim]Context:[/]", $"[blue]@{contexts.FirstOrDefault(c => c.id == task.context)?.name ?? "Unknown"}[/]");
-            if (!string.IsNullOrEmpty(task.note))
-                table.AddRow("[dim]Note:[/]", $"[silver]{task.note.EscapeMarkup()}[/]");
-
-            var panel = new Panel(table)
-            {
-                Header = new PanelHeader("[yellow]Editing Task[/]"),
-                Border = BoxBorder.Rounded,
-                BorderStyle = Style.Parse("yellow"),
-                Padding = new Padding(1, 0)
-            };
-            AnsiConsole.WriteLine();
-            AnsiConsole.Write(panel);
+            DisplayTaskDetail(task, folders, contexts, "Editing Task", "yellow");
 
             // Reconstruct raw string for Shadow Prompt
             string rawString = _taskParserService.ToRawString(task, folders, contexts);
@@ -595,6 +574,58 @@ namespace ToodledoConsole
             {
                 AnsiConsole.MarkupLine("[red]✗ Error updating task.[/]");
             }
+        }
+
+        private static async Task ViewTask(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return;
+
+            var task = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("cyan"))
+                .StartAsync("[cyan]Fetching task details...[/]", async ctx =>
+                {
+                    return await _taskService.GetTaskAsync(id);
+                });
+
+            if (task == null)
+            {
+                AnsiConsole.MarkupLine("[red]✗ Task not found.[/]");
+                return;
+            }
+
+            var folders = await _taskService.GetFoldersAsync();
+            var contexts = await _taskService.GetContextsAsync();
+
+            DisplayTaskDetail(task, folders, contexts, "Task Details", "cyan");
+        }
+
+        private static void DisplayTaskDetail(ToodledoTask task, List<ToodledoFolder> folders, List<ToodledoContext> contexts, string title, string color)
+        {
+            var table = new Table().NoBorder().HideHeaders();
+            table.AddColumn("K"); table.AddColumn("V");
+            table.AddRow("[dim]ID:[/]", $"[dim]{task.id}[/]");
+            table.AddRow("[dim]Title:[/]", $"[white]{task.title.EscapeMarkup()}[/]");
+            table.AddRow("[dim]Priority:[/]", GetPriorityMarkup(task.priority));
+            
+            if (task.folder != 0) 
+                table.AddRow("[dim]Folder:[/]", $"[green]{folders.FirstOrDefault(f => f.id == task.folder)?.name ?? "Unknown"}[/]");
+            if (task.context != 0) 
+                table.AddRow("[dim]Context:[/]", $"[blue]@{contexts.FirstOrDefault(c => c.id == task.context)?.name ?? "Unknown"}[/]");
+            if (!string.IsNullOrEmpty(task.tag))
+                table.AddRow("[dim]Tags:[/]", $"[silver dim]{task.tag}[/]");
+            if (!string.IsNullOrEmpty(task.note))
+                table.AddRow("[dim]Note:[/]", $"[silver]{task.note.EscapeMarkup()}[/]");
+
+            var panel = new Panel(table)
+            {
+                Header = new PanelHeader($"[{color}]{title}[/]"),
+                Border = BoxBorder.Rounded,
+                BorderStyle = Style.Parse(color),
+                Padding = new Padding(1, 0)
+            };
+            AnsiConsole.WriteLine();
+            AnsiConsole.Write(panel);
         }
         
         private static async Task TagTask(string input)
@@ -680,6 +711,7 @@ namespace ToodledoConsole
             table.AddRow("[cyan]list[/]", "[dim]Display all active tasks[/]");
     table.AddRow("[cyan]add[/] [white]<text>[/]", "[dim]Create task (ex: add Buy milk p:3 @Store !:today)[/]");
     table.AddRow("[cyan]edit[/] [white]<id>[/]", "[dim]Edit task using shadow prompt shorthand[/]");
+    table.AddRow("[cyan]view[/] [white]<id>[/]", "[dim]View full task details (including notes)[/]");
     table.AddRow("[cyan]tag[/] [white]<id> <tags>[/]", "[dim]Quickly update tags for a task[/]");
     table.AddRow("[cyan]note[/] [white]<id> <text>[/]", "[dim]Quickly update note for a task[/]");
     table.AddRow("[cyan]done[/] [white]<id>[/]", "[dim]Mark a task as completed[/]");

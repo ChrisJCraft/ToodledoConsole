@@ -21,7 +21,7 @@ namespace ToodledoConsole
             var criteria = new FilterCriteria();
             if (string.IsNullOrWhiteSpace(input)) return criteria;
 
-            var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var parts = SmartSplit(input);
             var searchTerms = new List<string>();
 
             foreach (var part in parts)
@@ -146,6 +146,42 @@ namespace ToodledoConsole
                 _contexts = await _taskService.GetContextsAsync();
             }
             return _contexts.FirstOrDefault(c => c.name.Equals(name, StringComparison.OrdinalIgnoreCase))?.id;
+        }
+
+        private IEnumerable<string> SmartSplit(string input)
+        {
+            var parts = new List<string>();
+            var current = new System.Text.StringBuilder();
+            bool inQuotes = false;
+
+            for (int i = 0; i < input.Length; i++)
+            {
+                char c = input[i];
+                if (c == '\"')
+                {
+                    inQuotes = !inQuotes;
+                    current.Append(c);
+                }
+                else if (c == ' ' && !inQuotes)
+                {
+                    if (current.Length > 0)
+                    {
+                        parts.Add(current.ToString());
+                        current.Clear();
+                    }
+                }
+                else
+                {
+                    current.Append(c);
+                }
+            }
+
+            if (current.Length > 0)
+            {
+                parts.Add(current.ToString());
+            }
+
+            return parts;
         }
     }
 }
