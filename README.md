@@ -16,9 +16,13 @@ A lightweight, modern C# CLI tool for managing your [Toodledo](https://www.toodl
 - **💾 Persistent Sessions**: Log in once, stay authenticated for 30 days via refresh tokens
 - **🚀 Automatic Browser Launch**: Seamless authentication flow with automatic browser handling
 - **🎲 Smart Random Task Selection**: Get a random task with intelligent tracking to avoid repetition
-- **🔍 Powerful Search**: Find tasks quickly by title or keyword
-- **📦 Modular Architecture**: Clean separation of concerns with dedicated services for auth and tasks
-- **🔒 Secure by Default**: API credentials stored locally and never committed to version control
+- **Organized Management**: Dedicated commands for managing folders, contexts, and locations
+- **🔍 Powerful Filters & Search**: Apply complex filters (priority, folder, context) or search by keyword
+- **🎯 Smart Random Selection**: Intelligent task picking avoids repetition
+- **📦 Modular Architecture**: Service-based design for maintainability
+- **🖥️ Standardized UI**: Consistent 100-column width for all views
+- **✨ Modern Code**: 100% clean build with zero warnings (Nullable Reference Types enabled)
+- **🔐 Secure OAuth2**: Industry-standard authentication with automatic token refresh
 
 ## 📋 Commands
 
@@ -32,7 +36,19 @@ A lightweight, modern C# CLI tool for managing your [Toodledo](https://www.toodl
 | `done [id]` | Mark a task as completed |
 | `delete [id]` | Permanently remove a task |
 | `find [text]` | Search for tasks by title or keyword |
-| `filter [k:v]` | Apply powerful filters (e.g., `filter p:1 f:Inbox`) |
+| `filter [k:v]` | Power-user filters (e.g., `filter p:1 f:Inbox @Work`) |
+| `folders` | List all folders |
+| `add-folder [name]` | Create a new folder |
+| `edit-folder [id|name] [new]` | Rename a folder |
+| `delete-folder [id|name]` | Remove a folder |
+| `contexts` | List all contexts |
+| `add-context [name]` | Create a new context |
+| `edit-context [id|name] [new]` | Rename a context |
+| `delete-context [id|name]` | Remove a context |
+| `locations` | List all locations |
+| `add-location [name]` | Create a new location |
+| `edit-location [id|name] [new]` | Rename a location |
+| `delete-location [id|name]` | Remove a location |
 | `random` | Pick a random task |
 | `help` | Show available commands and usage information |
 | `exit` | Close the application |
@@ -144,14 +160,21 @@ The `random` command uses intelligent tracking to avoid showing the same tasks r
 
 ```
 ToodledoConsole/
-├── Program.cs          # Main entry point and command handling loop
-├── AuthService.cs      # OAuth2 flow, token management, and refresh logic
-├── TaskService.cs      # API interactions for task operations (list, add, find, done)
-├── Models.cs           # Data structures (TokenStorage, TokenResponse, ToodledoTask)
-├── auth.txt            # Your API credentials (NOT tracked in Git)
-├── token.txt           # OAuth tokens (NOT tracked in Git)
-├── random_state.json   # Random task selection state (NOT tracked in Git)
-└── README.md           # This file
+├── Program.cs            # Entry point and command loop
+├── AuthService.cs        # OAuth2 authentication & token management
+├── TaskService.cs        # Task CRUD and retrieval
+├── ContextService.cs     # Context management
+├── FolderService.cs      # Folder management
+├── LocationService.cs    # Location management
+├── FilterService.cs      # Task list filtering logic
+├── TaskParserService.cs  # Shorthand parsing & task reconstruction
+├── UIService.cs          # Standardized UI rendering (Spectre.Console)
+├── InputService.cs       # Console input with history
+├── Models.cs             # Shared data models
+├── auth.txt              # API credentials (NOT in Git)
+├── token.txt             # OAuth tokens (NOT in Git)
+├── random_state.json     # Random task selection state (NOT in Git)
+└── README.md             # This file
 ```
 
 ## 🐛 Troubleshooting

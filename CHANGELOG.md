@@ -5,6 +5,28 @@ All notable changes to Toodledo Console will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-02-14
+
+### Added
+- **Management Commands**: Added full CRUD support for `folders`, `contexts`, and `locations`
+- **Extended Task Commands**: 
+  - `view [id]`: View comprehensive task details, including notes
+  - `note [id] [text]`: Quickly update or clear task notes
+  - `tag [id] [tags]`: Efficiently manage task tags
+  - `delete [id]`: Permanently remove tasks with confirmation
+- **Power-User Shorthands**: Supported `n:"..."` for notes and improved tag/context parsing
+- **Command History**: Added terminal-style history navigation using Up/Down arrow keys
+- **Standardized UI**: Consistent 100-column width across all components for a professional look
+
+### Changed
+- **Major Architecture Refactor**: Modularized the codebase into dedicated services:
+  - `ContextService`, `FolderService`, `LocationService`, `TaskParserService`, `UIService`, etc.
+- **Enhanced Search**: `find` and `filter` commands now provide more precise and formatted results
+
+### Fixed
+- **Code Quality**: Resolved **47 build warnings** related to Nullable Reference Types, achieving a 100% clean build
+- **Input Handling**: Improved note parsing to correctly handle quoted strings with spaces
+
 ## [1.5.1] - 2026-02-13
 
 ### Added
@@ -55,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
-- **v1.5.1** (Current) - Spectre.Console UI, smart random selection, enhanced documentation
+- **v2.0.0** (Current) - Modular refactor, Folder/Context/Location management, 0 build warnings
+- **v1.5.1** - Spectre.Console UI, smart random selection, enhanced documentation
 - **v1.0.0** - Modular architecture, OAuth2 authentication, core commands
 - **v0.1.0** - Initial release with basic functionality
