@@ -200,5 +200,40 @@ namespace ToodledoConsole
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/tasks/delete.php", content);
             return response.IsSuccessStatusCode;
         }
+
+        public async Task<bool> AddContextAsync(string name)
+        {
+            var contextObject = new[] { new { name = name } };
+            var contextData = JsonSerializer.Serialize(contextObject);
+            var content = new FormUrlEncodedContent(new[] {
+                new KeyValuePair<string, string>("access_token", _authService.AccessToken),
+                new KeyValuePair<string, string>("contexts", contextData)
+            });
+            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/contexts/add.php", content);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> EditContextAsync(long id, string name)
+        {
+            var contextObject = new[] { new { id = id, name = name } };
+            var contextData = JsonSerializer.Serialize(contextObject);
+            var content = new FormUrlEncodedContent(new[] {
+                new KeyValuePair<string, string>("access_token", _authService.AccessToken),
+                new KeyValuePair<string, string>("contexts", contextData)
+            });
+            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/contexts/edit.php", content);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> DeleteContextAsync(long id)
+        {
+            var contextData = "[" + id + "]";
+            var content = new FormUrlEncodedContent(new[] {
+                new KeyValuePair<string, string>("access_token", _authService.AccessToken),
+                new KeyValuePair<string, string>("contexts", contextData)
+            });
+            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/contexts/delete.php", content);
+            return response.IsSuccessStatusCode;
+        }
     }
 }

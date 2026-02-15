@@ -109,6 +109,7 @@ namespace ToodledoConsole
                 
                 if (lowerInput == "help") DisplayHelp();
                 else if (lowerInput == "list") await ListTasks();
+                else if (lowerInput == "contexts") await ListContexts();
                 else if (lowerInput == "random") await ShowRandom();
                 else if (lowerInput.StartsWith("filter ")) await FilterTasks(cleanInput.Substring(7).Trim());
                 else if (lowerInput.StartsWith("find ")) await SearchTasks(cleanInput.Substring(5).Trim());
@@ -118,6 +119,9 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("view ")) await ViewTask(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("tag ")) await TagTask(cleanInput.Substring(4).Trim());
                 else if (lowerInput.StartsWith("note ")) await NoteTask(cleanInput.Substring(5).Trim());
+                else if (lowerInput.StartsWith("add-context ")) await AddContext(cleanInput.Substring(12).Trim());
+                else if (lowerInput.StartsWith("edit-context ")) await EditContext(cleanInput.Substring(13).Trim());
+                else if (lowerInput.StartsWith("delete-context ")) await DeleteContext(cleanInput.Substring(15).Trim());
                 else if (lowerInput.StartsWith("delete ")) await DeleteTask(cleanInput.Substring(7).Trim());
                 else AnsiConsole.MarkupLine("[red]Unknown command. Type 'help' for available commands.[/]");
             }
@@ -737,6 +741,152 @@ namespace ToodledoConsole
                 AnsiConsole.MarkupLine("[red]✗ Error deleting task.[/]");
             }
         }
+
+        private static async Task AddContext(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                AnsiConsole.MarkupLine("[red]Usage: add-context <name>[/]");
+                return;
+            }
+
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("cyan"))
+                .StartAsync("[cyan]Adding context...[/]", async ctx =>
+                {
+                    return await _taskService.AddContextAsync(name);
+                });
+
+            if (success)
+                AnsiConsole.MarkupLine($"[green]✓ Context Added:[/] {name.EscapeMarkup()}");
+            else
+                AnsiConsole.MarkupLine("[red]✗ Error adding context.[/]");
+        }
+
+        private static async Task EditContext(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                AnsiConsole.MarkupLine("[red]Usage: edit-context <id_or_name> <new_name>[/]");
+                return;
+            }
+
+            var parts = input.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2)
+            {
+                AnsiConsole.MarkupLine("[red]Usage: edit-context <id_or_name> <new_name>[/]");
+                return;
+            }
+
+            string identifier = parts[0];
+            string newName = parts[1];
+
+            var contexts = await _taskService.GetContextsAsync();
+            var context = contexts.FirstOrDefault(c => c.id.ToString() == identifier || c.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
+
+            if (context == null)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Context not found: {identifier}[/]");
+                return;
+            }
+
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("cyan"))
+                .StartAsync("[cyan]Updating context...[/]", async ctx =>
+                {
+                    return await _taskService.EditContextAsync(context.id, newName);
+                });
+
+            if (success)
+                AnsiConsole.MarkupLine($"[green]✓ Context Updated:[/] {newName.EscapeMarkup()}");
+            else
+                AnsiConsole.MarkupLine("[red]✗ Error updating context.[/]");
+        }
+
+        private static async Task DeleteContext(string identifier)
+        {
+            if (string.IsNullOrWhiteSpace(identifier))
+            {
+                AnsiConsole.MarkupLine("[red]Usage: delete-context <id_or_name>[/]");
+                return;
+            }
+
+            var contexts = await _taskService.GetContextsAsync();
+            var context = contexts.FirstOrDefault(c => c.id.ToString() == identifier || c.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
+
+            if (context == null)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Context not found: {identifier}[/]");
+                return;
+            }
+
+            AnsiConsole.MarkupLine($"[yellow]Are you sure you want to delete context:[/] [white]{context.name}[/]? [dim](y/n)[/]");
+            var key = Console.ReadKey(true);
+            if (key.Key != ConsoleKey.Y)
+            {
+                AnsiConsole.MarkupLine("[yellow]Delete cancelled.[/]");
+                return;
+            }
+
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("red"))
+                .StartAsync("[red]Deleting context...[/]", async ctx =>
+                {
+                    return await _taskService.DeleteContextAsync(context.id);
+                });
+
+            if (success)
+                AnsiConsole.MarkupLine("[green]✓ Context Deleted![/]");
+            else
+                AnsiConsole.MarkupLine("[red]✗ Error deleting context.[/]");
+        }
+
+        private static async Task ListContexts()
+        {
+            try
+            {
+                var contexts = await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("cyan"))
+                    .StartAsync("[cyan]Loading contexts...[/]", async ctx =>
+                    {
+                        return await _taskService.GetContextsAsync();
+                    });
+
+                if (contexts.Count == 0)
+                {
+                    AnsiConsole.MarkupLine("[yellow]No contexts found.[/]");
+                    return;
+                }
+
+                var table = new Table();
+                table.Border(TableBorder.Rounded);
+                table.BorderStyle(Style.Parse("cyan"));
+                
+                table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
+                table.AddColumn(new TableColumn("[cyan]Context Name[/]").LeftAligned());
+
+                foreach (var context in contexts)
+                {
+                    table.AddRow(
+                        $"[dim]{context.id}[/]",
+                        $"[white]{context.name.EscapeMarkup()}[/]"
+                    );
+                }
+
+                AnsiConsole.WriteLine();
+                AnsiConsole.Write(table);
+                AnsiConsole.WriteLine();
+                AnsiConsole.MarkupLine($"[dim]Total Contexts: {contexts.Count}[/]");
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message.EscapeMarkup()}");
+            }
+        }
         
         private static void DisplayHelp()
         {
@@ -749,6 +899,7 @@ namespace ToodledoConsole
             table.AddColumn(new TableColumn(""));
 
             table.AddRow("[cyan]list[/]", "[dim]Display all active tasks[/]");
+    table.AddRow("[cyan]contexts[/]", "[dim]Display all contexts[/]");
     table.AddRow("[cyan]add[/] [white]<text>[/]", "[dim]Create task (ex: add Buy milk p:3 @Store !:today)[/]");
     table.AddRow("[cyan]edit[/] [white]<id>[/]", "[dim]Edit task using shadow prompt shorthand[/]");
     table.AddRow("[cyan]view[/] [white]<id>[/]", "[dim]View full task details (including notes)[/]");
@@ -756,6 +907,9 @@ namespace ToodledoConsole
     table.AddRow("[cyan]note[/] [white]<id> <text>[/]", "[dim]Quickly update note for a task[/]");
     table.AddRow("[cyan]done[/] [white]<id>[/]", "[dim]Mark a task as completed[/]");
     table.AddRow("[cyan]delete[/] [white]<id>[/]", "[dim]Permanently remove a task[/]");
+    table.AddRow("[cyan]add-context[/] [white]<name>[/]", "[dim]Create a new context[/]");
+    table.AddRow("[cyan]edit-context[/] [white]<id|name> <new>[/]", "[dim]Rename a context[/]");
+    table.AddRow("[cyan]delete-context[/] [white]<id|name>[/]", "[dim]Remove a context[/]");
     table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
     table.AddRow("[cyan]filter[/] [white][[k:v]][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");
     table.AddRow("[cyan]random[/]", "[dim]Show a random task[/]");
