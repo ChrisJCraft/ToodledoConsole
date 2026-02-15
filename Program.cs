@@ -285,7 +285,8 @@ namespace ToodledoConsole
                 Header = new PanelHeader("[green]🎯 RANDOM PICK[/]", Justify.Center),
                 Border = BoxBorder.Double,
                 BorderStyle = Style.Parse("green"),
-                Padding = new Padding(2, 1)
+                Padding = new Padding(2, 1),
+                Width = 100
             };
             
             AnsiConsole.WriteLine();

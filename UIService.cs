@@ -15,7 +15,7 @@ namespace ToodledoConsole
                 return;
             }
 
-            var table = new Table();
+            var table = new Table().Width(100);
             table.Border(TableBorder.Rounded);
             table.BorderStyle(Style.Parse("cyan"));
             
@@ -53,7 +53,8 @@ namespace ToodledoConsole
                 Header = new PanelHeader("[yellow]Active Filters[/]"),
                 Border = BoxBorder.Rounded,
                 BorderStyle = Style.Parse("yellow"),
-                Padding = new Padding(1, 0)
+                Padding = new Padding(1, 0),
+                Width = 100
             };
 
             AnsiConsole.WriteLine();
@@ -67,7 +68,7 @@ namespace ToodledoConsole
                 return;
             }
 
-            var table = new Table();
+            var table = new Table().Width(100);
             table.Border(TableBorder.Rounded);
             table.BorderStyle(Style.Parse("cyan"));
             
@@ -113,7 +114,8 @@ namespace ToodledoConsole
                 Header = new PanelHeader($"[{color}]{title}[/]"),
                 Border = BoxBorder.Rounded,
                 BorderStyle = Style.Parse(color),
-                Padding = new Padding(1, 0)
+                Padding = new Padding(1, 0),
+                Width = 100
             };
             AnsiConsole.WriteLine();
             AnsiConsole.Write(panel);
@@ -127,7 +129,7 @@ namespace ToodledoConsole
                 return;
             }
 
-            var table = new Table();
+            var table = new Table().Width(100);
             table.Border(TableBorder.Rounded);
             table.BorderStyle(Style.Parse("cyan"));
             
@@ -156,7 +158,7 @@ namespace ToodledoConsole
                 return;
             }
 
-            var table = new Table();
+            var table = new Table().Width(100);
             table.Border(TableBorder.Rounded);
             table.BorderStyle(Style.Parse("cyan"));
             
@@ -185,7 +187,7 @@ namespace ToodledoConsole
                 return;
             }
 
-            var table = new Table();
+            var table = new Table().Width(100);
             table.Border(TableBorder.Rounded);
             table.BorderStyle(Style.Parse("cyan"));
             
@@ -210,7 +212,7 @@ namespace ToodledoConsole
 
         public static void DisplayHelp()
         {
-            var table = new Table();
+            var table = new Table().Width(100);
             table.Border(TableBorder.Rounded);
             table.BorderStyle(Style.Parse("cyan"));
             table.HideHeaders();
@@ -249,7 +251,8 @@ namespace ToodledoConsole
             {
                 Header = new PanelHeader("[yellow]Available Commands[/]", Justify.Left),
                 Border = BoxBorder.Rounded,
-                BorderStyle = Style.Parse("yellow")
+                BorderStyle = Style.Parse("yellow"),
+                Width = 100
             };
             
             AnsiConsole.Write(panel);
