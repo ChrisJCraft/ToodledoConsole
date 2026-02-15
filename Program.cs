@@ -126,6 +126,10 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("add-context ")) await AddContext(cleanInput.Substring(12).Trim());
                 else if (lowerInput.StartsWith("edit-context ")) await EditContext(cleanInput.Substring(13).Trim());
                 else if (lowerInput.StartsWith("delete-context ")) await DeleteContext(cleanInput.Substring(15).Trim());
+                else if (lowerInput == "folders") await ListFolders();
+                else if (lowerInput.StartsWith("add-folder ")) await AddFolder(cleanInput.Substring(11).Trim());
+                else if (lowerInput.StartsWith("edit-folder ")) await EditFolder(cleanInput.Substring(12).Trim());
+                else if (lowerInput.StartsWith("delete-folder ")) await DeleteFolder(cleanInput.Substring(14).Trim());
                 else if (lowerInput.StartsWith("delete ")) await DeleteTask(cleanInput.Substring(7).Trim());
                 else AnsiConsole.MarkupLine("[red]Unknown command. Type 'help' for available commands.[/]");
             }
@@ -636,6 +640,128 @@ namespace ToodledoConsole
                     });
 
                 UIService.DisplayContexts(contexts);
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message.EscapeMarkup()}");
+            }
+        }
+
+        private static async Task AddFolder(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                AnsiConsole.MarkupLine("[red]Usage: add-folder <name>[/]");
+                return;
+            }
+
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("cyan"))
+                .StartAsync("[cyan]Adding folder...[/]", async ctx =>
+                {
+                    return await _folderService.AddFolderAsync(name);
+                });
+
+            if (success)
+                AnsiConsole.MarkupLine($"[green]✓ Folder Added:[/] {name.EscapeMarkup()}");
+            else
+                AnsiConsole.MarkupLine("[red]✗ Error adding folder.[/]");
+        }
+
+        private static async Task EditFolder(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                AnsiConsole.MarkupLine("[red]Usage: edit-folder <id_or_name> <new_name>[/]");
+                return;
+            }
+
+            var parts = input.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2)
+            {
+                AnsiConsole.MarkupLine("[red]Usage: edit-folder <id_or_name> <new_name>[/]");
+                return;
+            }
+
+            string identifier = parts[0];
+            string newName = parts[1];
+
+            var folders = await _folderService.GetFoldersAsync();
+            var folder = folders.FirstOrDefault(f => f.id.ToString() == identifier || f.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
+
+            if (folder == null)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Folder not found: {identifier}[/]");
+                return;
+            }
+
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("cyan"))
+                .StartAsync("[cyan]Updating folder...[/]", async ctx =>
+                {
+                    return await _folderService.EditFolderAsync(folder.id, newName);
+                });
+
+            if (success)
+                AnsiConsole.MarkupLine($"[green]✓ Folder Updated:[/] {newName.EscapeMarkup()}");
+            else
+                AnsiConsole.MarkupLine("[red]✗ Error updating folder.[/]");
+        }
+
+        private static async Task DeleteFolder(string identifier)
+        {
+            if (string.IsNullOrWhiteSpace(identifier))
+            {
+                AnsiConsole.MarkupLine("[red]Usage: delete-folder <id_or_name>[/]");
+                return;
+            }
+
+            var folders = await _folderService.GetFoldersAsync();
+            var folder = folders.FirstOrDefault(f => f.id.ToString() == identifier || f.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
+
+            if (folder == null)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Folder not found: {identifier}[/]");
+                return;
+            }
+
+            AnsiConsole.MarkupLine($"[yellow]Are you sure you want to delete folder:[/] [white]{folder.name}[/]? [dim](y/n)[/]");
+            var key = Console.ReadKey(true);
+            if (key.Key != ConsoleKey.Y)
+            {
+                AnsiConsole.MarkupLine("[yellow]Delete cancelled.[/]");
+                return;
+            }
+
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("red"))
+                .StartAsync("[red]Deleting folder...[/]", async ctx =>
+                {
+                    return await _folderService.DeleteFolderAsync(folder.id);
+                });
+
+            if (success)
+                AnsiConsole.MarkupLine("[green]✓ Folder Deleted![/]");
+            else
+                AnsiConsole.MarkupLine("[red]✗ Error deleting folder.[/]");
+        }
+
+        private static async Task ListFolders()
+        {
+            try
+            {
+                var folders = await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("cyan"))
+                    .StartAsync("[cyan]Loading folders...[/]", async ctx =>
+                    {
+                        return await _folderService.GetFoldersAsync();
+                    });
+
+                UIService.DisplayFolders(folders);
             }
             catch (Exception ex)
             {

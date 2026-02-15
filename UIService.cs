@@ -148,6 +148,35 @@ namespace ToodledoConsole
             AnsiConsole.MarkupLine($"[dim]Total Contexts: {contexts.Count}[/]");
         }
 
+        public static void DisplayFolders(List<ToodledoFolder> folders)
+        {
+            if (folders.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No folders found.[/]");
+                return;
+            }
+
+            var table = new Table();
+            table.Border(TableBorder.Rounded);
+            table.BorderStyle(Style.Parse("cyan"));
+            
+            table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
+            table.AddColumn(new TableColumn("[cyan]Folder Name[/]").LeftAligned());
+
+            foreach (var folder in folders)
+            {
+                table.AddRow(
+                    $"[dim]{folder.id}[/]",
+                    $"[white]{folder.name.EscapeMarkup()}[/]"
+                );
+            }
+
+            AnsiConsole.WriteLine();
+            AnsiConsole.Write(table);
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine($"[dim]Total Folders: {folders.Count}[/]");
+        }
+
         public static void DisplayHelp()
         {
             var table = new Table();
@@ -170,6 +199,10 @@ namespace ToodledoConsole
             table.AddRow("[cyan]add-context[/] [white]<name>[/]", "[dim]Create a new context[/]");
             table.AddRow("[cyan]edit-context[/] [white]<id|name> <new>[/]", "[dim]Rename a context[/]");
             table.AddRow("[cyan]delete-context[/] [white]<id|name>[/]", "[dim]Remove a context[/]");
+            table.AddRow("[cyan]folders[/]", "[dim]Display all folders[/]");
+            table.AddRow("[cyan]add-folder[/] [white]<name>[/]", "[dim]Create a new folder[/]");
+            table.AddRow("[cyan]edit-folder[/] [white]<id|name> <new>[/]", "[dim]Rename a folder[/]");
+            table.AddRow("[cyan]delete-folder[/] [white]<id|name>[/]", "[dim]Remove a folder[/]");
             table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
             table.AddRow("[cyan]filter[/] [white][[k:v]][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");
             table.AddRow("[cyan]random[/]", "[dim]Show a random task[/]");

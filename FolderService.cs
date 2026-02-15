@@ -40,5 +40,40 @@ namespace ToodledoConsole
             }
             return folders;
         }
+
+        public async Task<bool> AddFolderAsync(string name)
+        {
+            var folderObject = new[] { new { name = name } };
+            var folderData = JsonSerializer.Serialize(folderObject);
+            var content = new FormUrlEncodedContent(new[] {
+                new KeyValuePair<string, string>("access_token", _authService.AccessToken),
+                new KeyValuePair<string, string>("folders", folderData)
+            });
+            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/folders/add.php", content);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> EditFolderAsync(long id, string name)
+        {
+            var folderObject = new[] { new { id = id, name = name } };
+            var folderData = JsonSerializer.Serialize(folderObject);
+            var content = new FormUrlEncodedContent(new[] {
+                new KeyValuePair<string, string>("access_token", _authService.AccessToken),
+                new KeyValuePair<string, string>("folders", folderData)
+            });
+            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/folders/edit.php", content);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> DeleteFolderAsync(long id)
+        {
+            var folderData = "[" + id + "]";
+            var content = new FormUrlEncodedContent(new[] {
+                new KeyValuePair<string, string>("access_token", _authService.AccessToken),
+                new KeyValuePair<string, string>("folders", folderData)
+            });
+            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/folders/delete.php", content);
+            return response.IsSuccessStatusCode;
+        }
     }
 }
