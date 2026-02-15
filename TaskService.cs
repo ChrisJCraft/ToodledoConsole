@@ -77,50 +77,6 @@ namespace ToodledoConsole
             return tasks;
         }
 
-        public async Task<List<ToodledoFolder>> GetFoldersAsync()
-        {
-            var url = $"https://api.toodledo.com/3/folders/get.php?access_token={_authService.AccessToken}";
-            var json = await _httpClient.GetStringAsync(url);
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.ValueKind != JsonValueKind.Array) return new List<ToodledoFolder>();
-
-            var folders = new List<ToodledoFolder>();
-            foreach (var element in doc.RootElement.EnumerateArray())
-            {
-                if (element.TryGetProperty("id", out var idProp))
-                {
-                    folders.Add(new ToodledoFolder
-                    {
-                        id = idProp.GetInt64(),
-                        name = element.GetProperty("name").GetString()
-                    });
-                }
-            }
-            return folders;
-        }
-
-        public async Task<List<ToodledoContext>> GetContextsAsync()
-        {
-            var url = $"https://api.toodledo.com/3/contexts/get.php?access_token={_authService.AccessToken}";
-            var json = await _httpClient.GetStringAsync(url);
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.ValueKind != JsonValueKind.Array) return new List<ToodledoContext>();
-
-            var contexts = new List<ToodledoContext>();
-            foreach (var element in doc.RootElement.EnumerateArray())
-            {
-                if (element.TryGetProperty("id", out var idProp))
-                {
-                    contexts.Add(new ToodledoContext
-                    {
-                        id = idProp.GetInt64(),
-                        name = element.GetProperty("name").GetString()
-                    });
-                }
-            }
-            return contexts;
-        }
-
         public async Task<ToodledoTask> GetTaskAsync(string id)
         {
             var fields = "folder,context,star,priority,duedate,status,tag,note";
@@ -198,41 +154,6 @@ namespace ToodledoConsole
                 new KeyValuePair<string, string>("tasks", taskData)
             });
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/tasks/delete.php", content);
-            return response.IsSuccessStatusCode;
-        }
-
-        public async Task<bool> AddContextAsync(string name)
-        {
-            var contextObject = new[] { new { name = name } };
-            var contextData = JsonSerializer.Serialize(contextObject);
-            var content = new FormUrlEncodedContent(new[] {
-                new KeyValuePair<string, string>("access_token", _authService.AccessToken),
-                new KeyValuePair<string, string>("contexts", contextData)
-            });
-            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/contexts/add.php", content);
-            return response.IsSuccessStatusCode;
-        }
-
-        public async Task<bool> EditContextAsync(long id, string name)
-        {
-            var contextObject = new[] { new { id = id, name = name } };
-            var contextData = JsonSerializer.Serialize(contextObject);
-            var content = new FormUrlEncodedContent(new[] {
-                new KeyValuePair<string, string>("access_token", _authService.AccessToken),
-                new KeyValuePair<string, string>("contexts", contextData)
-            });
-            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/contexts/edit.php", content);
-            return response.IsSuccessStatusCode;
-        }
-
-        public async Task<bool> DeleteContextAsync(long id)
-        {
-            var contextData = "[" + id + "]";
-            var content = new FormUrlEncodedContent(new[] {
-                new KeyValuePair<string, string>("access_token", _authService.AccessToken),
-                new KeyValuePair<string, string>("contexts", contextData)
-            });
-            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/contexts/delete.php", content);
             return response.IsSuccessStatusCode;
         }
     }

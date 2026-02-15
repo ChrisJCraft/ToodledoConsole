@@ -8,12 +8,16 @@ namespace ToodledoConsole
     public class TaskParserService
     {
         private readonly TaskService _taskService;
+        private readonly FolderService _folderService;
+        private readonly ContextService _contextService;
         private List<ToodledoFolder> _folders;
         private List<ToodledoContext> _contexts;
 
-        public TaskParserService(TaskService taskService)
+        public TaskParserService(TaskService taskService, FolderService folderService, ContextService contextService)
         {
             _taskService = taskService;
+            _folderService = folderService;
+            _contextService = contextService;
         }
 
         public async Task<FilterCriteria> ParseAsync(string input)
@@ -134,7 +138,7 @@ namespace ToodledoConsole
         {
             if (_folders == null)
             {
-                _folders = await _taskService.GetFoldersAsync();
+                _folders = await _folderService.GetFoldersAsync();
             }
             return _folders.FirstOrDefault(f => f.name.Equals(name, StringComparison.OrdinalIgnoreCase))?.id;
         }
@@ -143,7 +147,7 @@ namespace ToodledoConsole
         {
             if (_contexts == null)
             {
-                _contexts = await _taskService.GetContextsAsync();
+                _contexts = await _contextService.GetContextsAsync();
             }
             return _contexts.FirstOrDefault(c => c.name.Equals(name, StringComparison.OrdinalIgnoreCase))?.id;
         }

@@ -16,11 +16,12 @@ namespace ToodledoConsole
     {
         private static AuthService _authService;
         private static TaskService _taskService;
+        private static ContextService _contextService;
+        private static FolderService _folderService;
         private static FilterService _filterService;
         private static TaskParserService _taskParserService;
-        private static List<string> _commandHistory = new List<string>();
-        private static int _historyIndex = -1;
-        private static string _currentInput = "";
+        private static InputService _inputService;
+        
         private static readonly HttpClient _httpClient = new HttpClient();
         private static List<ToodledoTask> _cachedTasks = new List<ToodledoTask>();
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -45,8 +46,11 @@ namespace ToodledoConsole
             {
                 _authService = new AuthService(_httpClient, _jsonOptions);
                 _taskService = new TaskService(_httpClient, _authService, _jsonOptions);
-                _taskParserService = new TaskParserService(_taskService);
+                _contextService = new ContextService(_httpClient, _authService, _jsonOptions);
+                _folderService = new FolderService(_httpClient, _authService, _jsonOptions);
+                _taskParserService = new TaskParserService(_taskService, _folderService, _contextService);
                 _filterService = new FilterService(_taskService, _taskParserService);
+                _inputService = new InputService();
                 
                 if (!_authService.LoadSecrets())
                 {
@@ -90,11 +94,11 @@ namespace ToodledoConsole
 
         private static async Task RunCommandLoop()
         {
-            DisplayHelp();
+            UIService.DisplayHelp();
             
             while (true)
             {
-                var input = ReadLineWithHistory("[cyan]Toodledo> [/]");
+                var input = _inputService.ReadLineWithHistory("[cyan]Toodledo> [/]");
                 
                 if (string.IsNullOrWhiteSpace(input)) continue;
 
@@ -107,7 +111,7 @@ namespace ToodledoConsole
                     break;
                 }
                 
-                if (lowerInput == "help") DisplayHelp();
+                if (lowerInput == "help") UIService.DisplayHelp();
                 else if (lowerInput == "list") await ListTasks();
                 else if (lowerInput == "contexts") await ListContexts();
                 else if (lowerInput == "random") await ShowRandom();
@@ -124,90 +128,6 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("delete-context ")) await DeleteContext(cleanInput.Substring(15).Trim());
                 else if (lowerInput.StartsWith("delete ")) await DeleteTask(cleanInput.Substring(7).Trim());
                 else AnsiConsole.MarkupLine("[red]Unknown command. Type 'help' for available commands.[/]");
-            }
-        }
-
-        private static string ReadLineWithHistory(string prompt)
-        {
-            AnsiConsole.Markup(prompt);
-            var input = new StringBuilder();
-            _historyIndex = _commandHistory.Count;
-            _currentInput = "";
-
-            while (true)
-            {
-                var key = Console.ReadKey(true);
-
-                if (key.Key == ConsoleKey.Enter)
-                {
-                    Console.WriteLine();
-                    var result = input.ToString();
-                    if (!string.IsNullOrWhiteSpace(result))
-                    {
-                        _commandHistory.Add(result);
-                    }
-                    return result;
-                }
-                else if (key.Key == ConsoleKey.UpArrow)
-                {
-                    if (_commandHistory.Count > 0 && _historyIndex > 0)
-                    {
-                        if (_historyIndex == _commandHistory.Count)
-                        {
-                            _currentInput = input.ToString();
-                        }
-
-                        _historyIndex--;
-                        ClearCurrentLine(prompt, input.Length);
-                        input.Clear();
-                        input.Append(_commandHistory[_historyIndex]);
-                        AnsiConsole.Markup(input.ToString().EscapeMarkup());
-                    }
-                }
-                else if (key.Key == ConsoleKey.DownArrow)
-                {
-                    if (_historyIndex < _commandHistory.Count - 1)
-                    {
-                        _historyIndex++;
-                        ClearCurrentLine(prompt, input.Length);
-                        input.Clear();
-                        input.Append(_commandHistory[_historyIndex]);
-                        AnsiConsole.Markup(input.ToString().EscapeMarkup());
-                    }
-                    else if (_historyIndex == _commandHistory.Count - 1)
-                    {
-                        _historyIndex++;
-                        ClearCurrentLine(prompt, input.Length);
-                        input.Clear();
-                        input.Append(_currentInput);
-                        AnsiConsole.Markup(input.ToString().EscapeMarkup());
-                    }
-                }
-                else if (key.Key == ConsoleKey.Backspace)
-                {
-                    if (input.Length > 0)
-                    {
-                        input.Remove(input.Length - 1, 1);
-                        Console.Write("\b \b");
-                    }
-                }
-                else if (key.KeyChar != '\u0000' && !char.IsControl(key.KeyChar))
-                {
-                    input.Append(key.KeyChar);
-                    Console.Write(key.KeyChar);
-                }
-            }
-        }
-
-        private static void ClearCurrentLine(string prompt, int inputLength)
-        {
-            // Go back to the start of the prompt
-            // Spectres Console doesn't have a simple way to clear the current line without knowing prompt length
-            // But we are in a simple console here.
-            // Actually simpler approach: backspace the input and clear it
-            for (int i = 0; i < inputLength; i++)
-            {
-                Console.Write("\b \b");
             }
         }
 
@@ -232,7 +152,7 @@ namespace ToodledoConsole
                 
                 // Show applied attributes
                 var attributes = new List<string>();
-                if (criteria.Priority.HasValue) attributes.Add($"[yellow]Priority:[/] {GetPriorityName(criteria.Priority.Value)}");
+                if (criteria.Priority.HasValue) attributes.Add($"[yellow]Priority:[/] {UIService.GetPriorityName(criteria.Priority.Value)}");
                 if (!string.IsNullOrEmpty(criteria.FolderName)) attributes.Add($"[green]Folder:[/] {criteria.FolderName}");
                 if (!string.IsNullOrEmpty(criteria.ContextName)) attributes.Add($"[blue]Context:[/] @{criteria.ContextName}");
                 if (criteria.Starred.HasValue) attributes.Add($"[gold1]Starred:[/] {(criteria.Starred == 1 ? "Yes" : "No")}");
@@ -263,7 +183,7 @@ namespace ToodledoConsole
                         return await _taskService.GetTasksAsync();
                     });
                 
-                DisplayTasks(_cachedTasks);
+                UIService.DisplayTasks(_cachedTasks);
             } 
             catch (Exception ex) 
             { 
@@ -298,7 +218,7 @@ namespace ToodledoConsole
                 var totalTasksCount = _cachedTasks.Count > 0 ? _cachedTasks.Count : (await _taskService.GetTasksAsync()).Count;
                 if (_cachedTasks.Count == 0) _cachedTasks = tasks; 
 
-                DisplayFilteredTasks(filteredResults, criteria, totalTasksCount);
+                UIService.DisplayFilteredTasks(filteredResults, criteria, totalTasksCount);
             }
             catch (Exception ex)
             {
@@ -306,89 +226,6 @@ namespace ToodledoConsole
             }
         }
 
-        private static void DisplayFilteredTasks(List<ToodledoTask> tasks, FilterCriteria criteria, int totalCount)
-        {
-            // 1. The Header: Active Filters Panel
-            var filterInfo = new List<string>();
-            if (criteria.Priority.HasValue) filterInfo.Add($"[yellow]Priority:[/] {GetPriorityName(criteria.Priority.Value)}");
-            if (!string.IsNullOrEmpty(criteria.FolderName)) filterInfo.Add($"[green]Folder:[/] {criteria.FolderName}");
-            if (!string.IsNullOrEmpty(criteria.ContextName)) filterInfo.Add($"[blue]Context:[/] @{criteria.ContextName}");
-            if (criteria.Starred.HasValue) filterInfo.Add($"[gold1]Starred:[/] {(criteria.Starred == 1 ? "Yes" : "No")}");
-            if (!string.IsNullOrEmpty(criteria.DueDateShortcut)) filterInfo.Add($"[purple]Due:[/] {criteria.DueDateShortcut}");
-            if (!string.IsNullOrEmpty(criteria.SearchTerm)) filterInfo.Add($"[silver]Search:[/] \"{criteria.SearchTerm}\"");
-
-            var filterPanel = new Panel(string.Join(" [dim]|[/] ", filterInfo))
-            {
-                Header = new PanelHeader("[yellow]Active Filters[/]"),
-                Border = BoxBorder.Rounded,
-                BorderStyle = Style.Parse("yellow"),
-                Padding = new Padding(1, 0)
-            };
-
-            AnsiConsole.WriteLine();
-            AnsiConsole.Write(filterPanel);
-
-            if (tasks.Count == 0)
-            {
-                // 3. The "No Match" Blessing
-                AnsiConsole.WriteLine();
-                AnsiConsole.MarkupLine("[orange1]No tasks match those filters. Try being less picky![/]");
-                AnsiConsole.WriteLine();
-                return;
-            }
-
-            // 2. The Table
-            var table = new Table();
-            table.Border(TableBorder.Rounded);
-            table.BorderStyle(Style.Parse("cyan"));
-            
-            table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
-            table.AddColumn(new TableColumn("[cyan]P[/]").Centered());
-            table.AddColumn(new TableColumn("[cyan]Task[/]").LeftAligned());
-            table.AddColumn(new TableColumn("[cyan]Tags[/]").LeftAligned());
-
-            foreach (var task in tasks)
-            {
-                table.AddRow(
-                    $"[dim]{task.id}[/]",
-                    GetPriorityMarkup(task.priority),
-                    $"[white]{task.title}[/]",
-                    $"[silver dim]{task.tag}[/]"
-                );
-            }
-
-            AnsiConsole.Write(table);
-
-            // 2. The Live Counter
-            AnsiConsole.MarkupLine($"[dim]Showing {tasks.Count} of {totalCount} tasks[/]");
-            AnsiConsole.WriteLine();
-        }
-
-        private static string GetPriorityName(int priority)
-        {
-            return priority switch
-            {
-                3 => "Top",
-                2 => "High",
-                1 => "Medium",
-                0 => "Low",
-                -1 => "Negative",
-                _ => "Unknown"
-            };
-        }
-
-        private static string GetPriorityMarkup(int priority)
-        {
-            return priority switch
-            {
-                3 => "[red]![/]",
-                2 => "[orange1]![/]",
-                1 => "[yellow]![/]",
-                0 => "[dim]-[/]",
-                -1 => "[dim]?[/]",
-                _ => "[dim] [/]"
-            };
-        }
 
         private static async Task SearchTasks(string keyword)
         {
@@ -404,40 +241,10 @@ namespace ToodledoConsole
             else 
             {
                 AnsiConsole.MarkupLine($"[cyan]Search results for:[/] [white]{keyword}[/]");
-                DisplayTasks(results);
+                UIService.DisplayTasks(results);
             }
         }
 
-        private static void DisplayTasks(List<ToodledoTask> tasks)
-        {
-            if (tasks.Count == 0)
-            {
-                AnsiConsole.MarkupLine("[yellow]No tasks found.[/]");
-                return;
-            }
-
-            var table = new Table();
-            table.Border(TableBorder.Rounded);
-            table.BorderStyle(Style.Parse("cyan"));
-            
-            table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
-            table.AddColumn(new TableColumn("[cyan]Task[/]").LeftAligned());
-            table.AddColumn(new TableColumn("[cyan]Tags[/]").LeftAligned());
-
-            foreach (var task in tasks)
-            {
-                table.AddRow(
-                    $"[dim]{task.id}[/]",
-                    $"[white]{task.title}[/]",
-                    $"[silver dim]{task.tag}[/]"
-                );
-            }
-
-            AnsiConsole.WriteLine();
-            AnsiConsole.Write(table);
-            AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine($"[dim]Total Tasks: {tasks.Count}[/]");
-        }
 
         private static async Task ShowRandom()
         {
@@ -543,10 +350,10 @@ namespace ToodledoConsole
                 return;
             }
 
-            var folders = await _taskService.GetFoldersAsync();
-            var contexts = await _taskService.GetContextsAsync();
+            var folders = await _folderService.GetFoldersAsync();
+            var contexts = await _contextService.GetContextsAsync();
             
-            DisplayTaskDetail(task, folders, contexts, "Editing Task", "yellow");
+            UIService.DisplayTaskDetail(task, folders, contexts, "Editing Task", "yellow");
 
             // Reconstruct raw string for Shadow Prompt
             string rawString = _taskParserService.ToRawString(task, folders, contexts);
@@ -599,39 +406,12 @@ namespace ToodledoConsole
                 return;
             }
 
-            var folders = await _taskService.GetFoldersAsync();
-            var contexts = await _taskService.GetContextsAsync();
+            var folders = await _folderService.GetFoldersAsync();
+            var contexts = await _contextService.GetContextsAsync();
 
-            DisplayTaskDetail(task, folders, contexts, "Task Details", "cyan");
+            UIService.DisplayTaskDetail(task, folders, contexts, "Task Details", "cyan");
         }
 
-        private static void DisplayTaskDetail(ToodledoTask task, List<ToodledoFolder> folders, List<ToodledoContext> contexts, string title, string color)
-        {
-            var table = new Table().NoBorder().HideHeaders();
-            table.AddColumn("K"); table.AddColumn("V");
-            table.AddRow("[dim]ID:[/]", $"[dim]{task.id}[/]");
-            table.AddRow("[dim]Title:[/]", $"[white]{task.title.EscapeMarkup()}[/]");
-            table.AddRow("[dim]Priority:[/]", GetPriorityMarkup(task.priority));
-            
-            if (task.folder != 0) 
-                table.AddRow("[dim]Folder:[/]", $"[green]{folders.FirstOrDefault(f => f.id == task.folder)?.name ?? "Unknown"}[/]");
-            if (task.context != 0) 
-                table.AddRow("[dim]Context:[/]", $"[blue]@{contexts.FirstOrDefault(c => c.id == task.context)?.name ?? "Unknown"}[/]");
-            if (!string.IsNullOrEmpty(task.tag))
-                table.AddRow("[dim]Tags:[/]", $"[silver dim]{task.tag}[/]");
-            if (!string.IsNullOrEmpty(task.note))
-                table.AddRow("[dim]Note:[/]", $"[silver]{task.note.EscapeMarkup()}[/]");
-
-            var panel = new Panel(table)
-            {
-                Header = new PanelHeader($"[{color}]{title}[/]"),
-                Border = BoxBorder.Rounded,
-                BorderStyle = Style.Parse(color),
-                Padding = new Padding(1, 0)
-            };
-            AnsiConsole.WriteLine();
-            AnsiConsole.Write(panel);
-        }
         
         private static async Task TagTask(string input)
         {
@@ -707,7 +487,6 @@ namespace ToodledoConsole
         {
             if (string.IsNullOrWhiteSpace(id)) return;
 
-            // Optional: Fetch task bits to show what's being deleted
             var task = await _taskService.GetTaskAsync(id);
             if (task == null)
             {
@@ -755,7 +534,7 @@ namespace ToodledoConsole
                 .SpinnerStyle(Style.Parse("cyan"))
                 .StartAsync("[cyan]Adding context...[/]", async ctx =>
                 {
-                    return await _taskService.AddContextAsync(name);
+                    return await _contextService.AddContextAsync(name);
                 });
 
             if (success)
@@ -782,7 +561,7 @@ namespace ToodledoConsole
             string identifier = parts[0];
             string newName = parts[1];
 
-            var contexts = await _taskService.GetContextsAsync();
+            var contexts = await _contextService.GetContextsAsync();
             var context = contexts.FirstOrDefault(c => c.id.ToString() == identifier || c.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
 
             if (context == null)
@@ -796,7 +575,7 @@ namespace ToodledoConsole
                 .SpinnerStyle(Style.Parse("cyan"))
                 .StartAsync("[cyan]Updating context...[/]", async ctx =>
                 {
-                    return await _taskService.EditContextAsync(context.id, newName);
+                    return await _contextService.EditContextAsync(context.id, newName);
                 });
 
             if (success)
@@ -813,7 +592,7 @@ namespace ToodledoConsole
                 return;
             }
 
-            var contexts = await _taskService.GetContextsAsync();
+            var contexts = await _contextService.GetContextsAsync();
             var context = contexts.FirstOrDefault(c => c.id.ToString() == identifier || c.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
 
             if (context == null)
@@ -835,7 +614,7 @@ namespace ToodledoConsole
                 .SpinnerStyle(Style.Parse("red"))
                 .StartAsync("[red]Deleting context...[/]", async ctx =>
                 {
-                    return await _taskService.DeleteContextAsync(context.id);
+                    return await _contextService.DeleteContextAsync(context.id);
                 });
 
             if (success)
@@ -853,79 +632,15 @@ namespace ToodledoConsole
                     .SpinnerStyle(Style.Parse("cyan"))
                     .StartAsync("[cyan]Loading contexts...[/]", async ctx =>
                     {
-                        return await _taskService.GetContextsAsync();
+                        return await _contextService.GetContextsAsync();
                     });
 
-                if (contexts.Count == 0)
-                {
-                    AnsiConsole.MarkupLine("[yellow]No contexts found.[/]");
-                    return;
-                }
-
-                var table = new Table();
-                table.Border(TableBorder.Rounded);
-                table.BorderStyle(Style.Parse("cyan"));
-                
-                table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
-                table.AddColumn(new TableColumn("[cyan]Context Name[/]").LeftAligned());
-
-                foreach (var context in contexts)
-                {
-                    table.AddRow(
-                        $"[dim]{context.id}[/]",
-                        $"[white]{context.name.EscapeMarkup()}[/]"
-                    );
-                }
-
-                AnsiConsole.WriteLine();
-                AnsiConsole.Write(table);
-                AnsiConsole.WriteLine();
-                AnsiConsole.MarkupLine($"[dim]Total Contexts: {contexts.Count}[/]");
+                UIService.DisplayContexts(contexts);
             }
             catch (Exception ex)
             {
                 AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message.EscapeMarkup()}");
             }
-        }
-        
-        private static void DisplayHelp()
-        {
-            var table = new Table();
-            table.Border(TableBorder.Rounded);
-            table.BorderStyle(Style.Parse("cyan"));
-            table.HideHeaders();
-            
-            table.AddColumn(new TableColumn("").Width(20));
-            table.AddColumn(new TableColumn(""));
-
-            table.AddRow("[cyan]list[/]", "[dim]Display all active tasks[/]");
-    table.AddRow("[cyan]contexts[/]", "[dim]Display all contexts[/]");
-    table.AddRow("[cyan]add[/] [white]<text>[/]", "[dim]Create task (ex: add Buy milk p:3 @Store !:today)[/]");
-    table.AddRow("[cyan]edit[/] [white]<id>[/]", "[dim]Edit task using shadow prompt shorthand[/]");
-    table.AddRow("[cyan]view[/] [white]<id>[/]", "[dim]View full task details (including notes)[/]");
-    table.AddRow("[cyan]tag[/] [white]<id> <tags>[/]", "[dim]Quickly update tags for a task[/]");
-    table.AddRow("[cyan]note[/] [white]<id> <text>[/]", "[dim]Quickly update note for a task[/]");
-    table.AddRow("[cyan]done[/] [white]<id>[/]", "[dim]Mark a task as completed[/]");
-    table.AddRow("[cyan]delete[/] [white]<id>[/]", "[dim]Permanently remove a task[/]");
-    table.AddRow("[cyan]add-context[/] [white]<name>[/]", "[dim]Create a new context[/]");
-    table.AddRow("[cyan]edit-context[/] [white]<id|name> <new>[/]", "[dim]Rename a context[/]");
-    table.AddRow("[cyan]delete-context[/] [white]<id|name>[/]", "[dim]Remove a context[/]");
-    table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
-    table.AddRow("[cyan]filter[/] [white][[k:v]][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");
-    table.AddRow("[cyan]random[/]", "[dim]Show a random task[/]");
-    table.AddRow("[cyan]help[/]", "[dim]Show this help message[/]");
-    table.AddRow("[cyan]exit[/]", "[dim]Exit the application[/]");
-
-            AnsiConsole.WriteLine();
-            var panel = new Panel(table)
-            {
-                Header = new PanelHeader("[yellow]Available Commands[/]", Justify.Left),
-                Border = BoxBorder.Rounded,
-                BorderStyle = Style.Parse("yellow")
-            };
-            
-            AnsiConsole.Write(panel);
-            AnsiConsole.WriteLine();
         }
     }
 }
