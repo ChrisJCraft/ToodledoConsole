@@ -46,7 +46,7 @@ namespace ToodledoConsole
 
         public async Task<List<ToodledoTask>> GetTasksAsync(string queryParams = "")
         {
-            var fields = "folder,context,star,priority,duedate,status,tag,note";
+            var fields = "folder,context,star,priority,duedate,status,tag,note,added,location";
             var url = $"https://api.toodledo.com/3/tasks/get.php?access_token={_authService.AccessToken}&comp=0&fields={fields}{queryParams}";
             var json = await _httpClient.GetStringAsync(url);
             using var doc = JsonDocument.Parse(json);
@@ -71,6 +71,8 @@ namespace ToodledoConsole
                     if (element.TryGetProperty("status", out var stProp)) task.status = stProp.GetInt32();
                     if (element.TryGetProperty("tag", out var tagProp)) task.tag = tagProp.GetString() ?? string.Empty;
                     if (element.TryGetProperty("note", out var noteProp)) task.note = noteProp.GetString() ?? string.Empty;
+                    if (element.TryGetProperty("added", out var addedProp)) task.added = addedProp.GetInt64();
+                    if (element.TryGetProperty("location", out var locProp)) task.location = locProp.GetInt64();
 
                     tasks.Add(task);
             }
@@ -79,7 +81,7 @@ namespace ToodledoConsole
 
         public async Task<ToodledoTask?> GetTaskAsync(string id)
         {
-            var fields = "folder,context,star,priority,duedate,status,tag,note";
+            var fields = "folder,context,star,priority,duedate,status,tag,note,added,location";
             var url = $"https://api.toodledo.com/3/tasks/get.php?access_token={_authService.AccessToken}&id={id}&fields={fields}";
             var json = await _httpClient.GetStringAsync(url);
             using var doc = JsonDocument.Parse(json);
@@ -102,7 +104,9 @@ namespace ToodledoConsole
                         duedate = element.TryGetProperty("duedate", out var dProp) ? dProp.GetInt64() : 0,
                         status = element.TryGetProperty("status", out var stProp) ? stProp.GetInt32() : 0,
                         tag = (element.TryGetProperty("tag", out var tagProp) ? tagProp.GetString() : "") ?? "",
-                        note = (element.TryGetProperty("note", out var noteProp) ? noteProp.GetString() : "") ?? ""
+                        note = (element.TryGetProperty("note", out var noteProp) ? noteProp.GetString() : "") ?? "",
+                        added = element.TryGetProperty("added", out var addedProp) ? addedProp.GetInt64() : 0,
+                        location = element.TryGetProperty("location", out var locProp) ? locProp.GetInt64() : 0
                     };
                 }
             }
@@ -155,6 +159,26 @@ namespace ToodledoConsole
             });
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/tasks/delete.php", content);
             return response.IsSuccessStatusCode;
+        }
+
+        public async Task<int> GetCompletedCountAsync()
+        {
+            var url = $"https://api.toodledo.com/3/tasks/get.php?access_token={_authService.AccessToken}&comp=1&fields=id";
+            var json = await _httpClient.GetStringAsync(url);
+            using var doc = JsonDocument.Parse(json);
+            
+            if (doc.RootElement.ValueKind != JsonValueKind.Array) return 0;
+            
+            // Toodledo API returns an array where the first element is metadata
+            // e.g. {"num":"42","total":"42"}
+            var metadata = doc.RootElement[0];
+            if (metadata.TryGetProperty("total", out var totalProp))
+            {
+                if (totalProp.ValueKind == JsonValueKind.Number) return totalProp.GetInt32();
+                if (totalProp.ValueKind == JsonValueKind.String && int.TryParse(totalProp.GetString(), out var count)) return count;
+            }
+            
+            return 0;
         }
     }
 }

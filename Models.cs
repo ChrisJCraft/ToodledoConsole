@@ -27,6 +27,8 @@ namespace ToodledoConsole
         public int status { get; set; }
         public string tag { get; set; } = string.Empty;
         public string note { get; set; } = string.Empty;
+        public long added { get; set; }
+        public long location { get; set; }
     }
 
     public class ToodledoFolder

@@ -125,6 +125,7 @@ namespace ToodledoConsole
                 
                 if (lowerInput == "help") UIService.DisplayHelp();
                 else if (lowerInput == "list") await ListTasks();
+                else if (lowerInput == "stats") await ShowStats();
                 else if (lowerInput == "contexts") await ListContexts();
                 else if (lowerInput == "random") await ShowRandom();
                 else if (lowerInput.StartsWith("random ")) await ShowRandom(cleanInput.Substring(7).Trim());
@@ -149,6 +150,31 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("delete-location ")) await DeleteLocation(cleanInput.Substring(16).Trim());
                 else if (lowerInput.StartsWith("delete ")) await DeleteTask(cleanInput.Substring(7).Trim());
                 else AnsiConsole.MarkupLine("[red]Unknown command. Type 'help' for available commands.[/]");
+            }
+        }
+
+        private static async Task ShowStats()
+        {
+            try
+            {
+                var tasks = await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("cyan"))
+                    .StartAsync("[cyan]Loading dashboard data...[/]", async ctx =>
+                    {
+                        var t = await _taskService.GetTasksAsync();
+                        var f = await _folderService.GetFoldersAsync();
+                        var c = await _contextService.GetContextsAsync();
+                        var l = await _locationService.GetLocationsAsync();
+                        var comp = await _taskService.GetCompletedCountAsync();
+                        return (t, f, c, l, comp);
+                    });
+
+                UIService.DisplayStats(tasks.t, tasks.f, tasks.c, tasks.l, tasks.comp);
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Error loading stats:[/] {ex.Message.EscapeMarkup()}");
             }
         }
 

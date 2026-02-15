@@ -121,6 +121,167 @@ namespace ToodledoConsole
             AnsiConsole.Write(panel);
         }
 
+        public static void DisplayStats(List<ToodledoTask> tasks, List<ToodledoFolder> folders, List<ToodledoContext> contexts, List<ToodledoLocation> locations, int completedCount)
+        {
+            if (tasks.Count == 0 && completedCount == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No tasks to analyze.[/]");
+                return;
+            }
+
+            // --- Progress Bar ---
+            int totalTasks = tasks.Count + completedCount;
+            double progressPercent = totalTasks > 0 ? (double)completedCount / totalTasks * 100 : 0;
+            
+            // --- Priority Breakdown ---
+            var priorityGroups = tasks.GroupBy(t => t.priority)
+                .OrderByDescending(g => g.Key);
+            
+            var priorityChart = new BreakdownChart().Width(100);
+            foreach (var group in priorityGroups)
+            {
+                var color = group.Key switch
+                {
+                    3 => Color.Red,
+                    2 => Color.Orange1,
+                    1 => Color.Yellow,
+                    0 => Color.Grey,
+                    -1 => Color.Blue,
+                    _ => Color.Silver
+                };
+                priorityChart.AddItem(GetPriorityName(group.Key), group.Count(), color);
+            }
+
+            // --- Folder Breakdown ---
+            var folderChart = new BarChart()
+                .Width(100)
+                .Label("[green]Tasks by Folder[/]")
+                .CenterLabel();
+
+            var folderGroups = tasks.GroupBy(t => t.folder)
+                .OrderByDescending(g => g.Count())
+                .Take(5);
+
+            int fIdx = 0;
+            var folderColors = new[] { Color.Aquamarine1, Color.Green, Color.SeaGreen1, Color.DarkGreen, Color.Lime };
+            foreach (var group in folderGroups)
+            {
+                var folderName = group.Key == 0 ? "No Folder" : folders.FirstOrDefault(f => f.id == group.Key)?.name ?? "Unknown";
+                folderChart.AddItem(folderName, group.Count(), folderColors[fIdx % folderColors.Length]);
+                fIdx++;
+            }
+
+            // --- Context Breakdown ---
+            var contextChart = new BarChart()
+                .Width(100)
+                .Label("[blue]Tasks by Context[/]")
+                .CenterLabel();
+
+            var contextGroups = tasks.GroupBy(t => t.context)
+                .OrderByDescending(g => g.Count())
+                .Take(5);
+
+            int cIdx = 0;
+            var contextColors = new[] { Color.CadetBlue, Color.Blue, Color.SkyBlue1, Color.DeepSkyBlue1, Color.DodgerBlue1 };
+            foreach (var group in contextGroups)
+            {
+                var contextName = group.Key == 0 ? "No Context" : contexts.FirstOrDefault(c => c.id == group.Key)?.name ?? "Unknown";
+                contextChart.AddItem($"@{contextName}", group.Count(), contextColors[cIdx % contextColors.Length]);
+                cIdx++;
+            }
+
+            // --- Due Date Summary ---
+            var now = DateTime.UtcNow.Date;
+            long todayUnix = new DateTimeOffset(now).ToUnixTimeSeconds();
+            var tomorrow = now.AddDays(1);
+            var week = now.AddDays(7);
+
+            var overdueCount = tasks.Count(t => t.duedate > 0 && t.duedate < todayUnix && !IsSameDay(t.duedate, now));
+            var todayCount = tasks.Count(t => t.duedate > 0 && IsSameDay(t.duedate, now));
+            var tomorrowCount = tasks.Count(t => t.duedate > 0 && IsSameDay(t.duedate, tomorrow));
+            var weekCount = tasks.Count(t => t.duedate > 0 && t.duedate > todayUnix && t.duedate <= new DateTimeOffset(week).ToUnixTimeSeconds());
+            var noDueCount = tasks.Count(t => t.duedate == 0);
+
+            var dueTable = new Table().NoBorder().HideHeaders().Width(100);
+            dueTable.AddColumn("Label"); dueTable.AddColumn("Value");
+            dueTable.AddRow("[red]Overdue[/]", overdueCount.ToString());
+            dueTable.AddRow("[yellow]Today[/]", todayCount.ToString());
+            dueTable.AddRow("[green]Tomorrow[/]", tomorrowCount.ToString());
+            dueTable.AddRow("[cyan]Next 7 Days[/]", weekCount.ToString());
+            dueTable.AddRow("[dim]Someday/No Date[/]", noDueCount.ToString());
+
+            // --- Facts Section ---
+            var topContext = tasks.Where(t => t.context != 0)
+                .GroupBy(t => t.context)
+                .OrderByDescending(g => g.Count())
+                .FirstOrDefault();
+            string topContextName = topContext != null ? contexts.FirstOrDefault(c => c.id == topContext.Key)?.name ?? "Unknown" : "N/A";
+
+            var topFolder = tasks.Where(t => t.folder != 0)
+                .GroupBy(t => t.folder)
+                .OrderByDescending(g => g.Count())
+                .FirstOrDefault();
+            string topFolderName = topFolder != null ? folders.FirstOrDefault(f => f.id == topFolder.Key)?.name ?? "Unknown" : "N/A";
+
+            var topLocation = tasks.Where(t => t.location != 0)
+                .GroupBy(t => t.location)
+                .OrderByDescending(g => g.Count())
+                .FirstOrDefault();
+            string topLocationName = topLocation != null ? locations.FirstOrDefault(l => l.id == topLocation.Key)?.name ?? "Unknown" : "N/A";
+
+            var oldestTask = tasks.OrderBy(t => t.added).FirstOrDefault();
+            string oldestTaskInfo = oldestTask != null ? $"{oldestTask.title.EscapeMarkup()} [dim]({DateTimeOffset.FromUnixTimeSeconds(oldestTask.added).LocalDateTime:yyyy-MM-dd})[/]" : "N/A";
+
+            var factTable = new Table().NoBorder().HideHeaders().Width(100);
+            factTable.AddColumn("Label"); factTable.AddColumn("Value");
+            factTable.AddRow("[cyan]Top Context:[/]", $"[blue]@{topContextName}[/] [dim]({topContext?.Count() ?? 0} tasks)[/]");
+            factTable.AddRow("[cyan]Top Folder:[/]", $"[green]{topFolderName}[/] [dim]({topFolder?.Count() ?? 0} tasks)[/]");
+            factTable.AddRow("[cyan]Top Location:[/]", $"[yellow]{topLocationName}[/] [dim]({topLocation?.Count() ?? 0} tasks)[/]");
+            factTable.AddRow("[cyan]Oldest Task:[/]", oldestTaskInfo);
+
+            // --- Assembly ---
+            AnsiConsole.WriteLine();
+            var headRule = new Rule("[gold1]📊 TASK DASHBOARD[/]");
+            headRule.Style = Style.Parse("gold1");
+            AnsiConsole.Write(headRule);
+            AnsiConsole.WriteLine();
+
+            // Progress Panel
+            var progressChart = new BreakdownChart().Width(96);
+            progressChart.AddItem("Completed", completedCount, Color.Green);
+            progressChart.AddItem("Remaining", tasks.Count, Color.Yellow);
+
+            var progressContent = new Rows(
+                new Markup($"[dim]Completed Tasks:[/] [green]{completedCount}[/] [dim]| Remaining Tasks:[/] [yellow]{tasks.Count}[/] [dim]| Total:[/] [white]{totalTasks}[/] [dim]({progressPercent:F1}%)[/]"),
+                new Text(""), // Spacer
+                progressChart
+            );
+            AnsiConsole.Write(new Panel(progressContent) { Header = new PanelHeader("[cyan]Task Progress[/]"), Border = BoxBorder.Rounded, Width = 100 });
+            AnsiConsole.WriteLine();
+
+            var columns = new Columns(
+                new Panel(factTable) { Header = new PanelHeader("[yellow]Top Facts[/]"), Border = BoxBorder.Rounded, Width = 48 },
+                new Panel(dueTable) { Header = new PanelHeader("[purple]Due Date Summary[/]"), Border = BoxBorder.Rounded, Width = 48 }
+            );
+            AnsiConsole.Write(columns);
+            AnsiConsole.WriteLine();
+
+            AnsiConsole.Write(new Panel(priorityChart) { Header = new PanelHeader("[yellow]Priority Distribution[/]"), Border = BoxBorder.Rounded, Width = 100 });
+            AnsiConsole.WriteLine();
+
+            AnsiConsole.Write(folderChart);
+            AnsiConsole.WriteLine();
+
+            AnsiConsole.Write(contextChart);
+            AnsiConsole.WriteLine();
+        }
+
+        private static bool IsSameDay(long unixTime, DateTime date)
+        {
+            var taskDate = DateTimeOffset.FromUnixTimeSeconds(unixTime).UtcDateTime.Date;
+            return taskDate == date.Date;
+        }
+
         public static void DisplayContexts(List<ToodledoContext> contexts)
         {
             if (contexts.Count == 0)
@@ -221,6 +382,7 @@ namespace ToodledoConsole
             table.AddColumn(new TableColumn(""));
 
             table.AddRow("[cyan]list[/]", "[dim]Display all active tasks[/]");
+            table.AddRow("[cyan]stats[/]", "[dim]Show productivity dashboard[/]");
             table.AddRow("[cyan]contexts[/]", "[dim]Display all contexts[/]");
             table.AddRow("[cyan]add[/] [white]<text>[/]", "[dim]Create task (ex: add Buy milk p:3 @Store !:today)[/]");
             table.AddRow("[cyan]edit[/] [white]<id>[/]", "[dim]Edit task using shadow prompt shorthand[/]");
