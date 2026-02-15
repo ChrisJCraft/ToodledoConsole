@@ -56,9 +56,19 @@ namespace ToodledoConsole
                 
                 if (!_authService.LoadSecrets())
                 {
-                    AnsiConsole.MarkupLine($"[red]Error:[/] {AuthService.AuthFile} not found or invalid.");
-                    AnsiConsole.MarkupLine("[yellow]Please create 'auth.txt' with Client ID on line 1 and Client Secret on line 2.[/]");
-                    return;
+                    AnsiConsole.MarkupLine("[yellow]Setup: Toodledo API credentials not found.[/]");
+                    var clientId = AnsiConsole.Ask<string>("Enter your [cyan]Client ID[/]:");
+                    var clientSecret = AnsiConsole.Ask<string>("Enter your [cyan]Client Secret[/]:");
+                    
+                    if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
+                    {
+                        AnsiConsole.MarkupLine("[red]Error:[/] Client ID and Secret are required.");
+                        return;
+                    }
+
+                    _authService.SetSecrets(clientId, clientSecret);
+                    _authService.SaveSecrets();
+                    AnsiConsole.MarkupLine("[green]✓ Credentials saved to auth.txt[/]");
                 }
 
                 bool authenticated = await AnsiConsole.Status()

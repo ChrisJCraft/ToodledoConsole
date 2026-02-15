@@ -14,6 +14,17 @@ namespace ToodledoConsole
         public string ReadLineWithHistory(string prompt)
         {
             AnsiConsole.Markup(prompt);
+
+            if (Console.IsInputRedirected)
+            {
+                var redirectedInput = Console.ReadLine();
+                if (redirectedInput != null && !string.IsNullOrWhiteSpace(redirectedInput))
+                {
+                    _commandHistory.Add(redirectedInput);
+                }
+                return redirectedInput ?? "";
+            }
+
             var input = new StringBuilder();
             _historyIndex = _commandHistory.Count;
             _currentInput = "";

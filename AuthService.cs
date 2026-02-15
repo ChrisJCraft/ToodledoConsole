@@ -36,7 +36,18 @@ namespace ToodledoConsole
             if (lines.Length < 2) return false;
             _clientId = lines[0].Trim();
             _clientSecret = lines[1].Trim();
-            return true;
+            return !string.IsNullOrEmpty(_clientId) && !string.IsNullOrEmpty(_clientSecret);
+        }
+
+        public void SetSecrets(string clientId, string clientSecret)
+        {
+            _clientId = clientId;
+            _clientSecret = clientSecret;
+        }
+
+        public void SaveSecrets()
+        {
+            File.WriteAllLines(AuthFile, new[] { _clientId, _clientSecret });
         }
 
         public async Task<bool> InitializeAsync()

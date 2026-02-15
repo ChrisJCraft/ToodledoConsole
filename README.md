@@ -10,19 +10,16 @@ A lightweight, modern C# CLI tool for managing your [Toodledo](https://www.toodl
 
 - **🎨 Beautiful CLI Interface**: Powered by Spectre.Console with rich colors, tables, and formatting
 - **⚡ Detailed Task Control**: Set priority, folder, context, due dates, tags, and notes directly from the command line
-- **🏷️ Tag Support**: Organise tasks with tags using `#tag` shorthand and a dedicated `tag` command
+- **🏷️ Tag Support**: Organize tasks with tags using `#tag` shorthand and a dedicated `tag` command
 - **📝 Note Management**: Add detailed notes to tasks with `n:"..."` shorthand and a dedicated `note` command
+- **🔍 Powerful Filters & Search**: Apply complex filters (priority, folder, context) or search by keyword
+- **🎯 Smart Random Selection**: Intelligent task picking avoids repetition
 - **🔐 Secure OAuth2 Authentication**: Industry-standard OAuth2 flow with automatic token refresh
 - **💾 Persistent Sessions**: Log in once, stay authenticated for 30 days via refresh tokens
 - **🚀 Automatic Browser Launch**: Seamless authentication flow with automatic browser handling
-- **🎲 Smart Random Task Selection**: Get a random task with intelligent tracking to avoid repetition
-- **Organized Management**: Dedicated commands for managing folders, contexts, and locations
-- **🔍 Powerful Filters & Search**: Apply complex filters (priority, folder, context) or search by keyword
-- **🎯 Smart Random Selection**: Intelligent task picking avoids repetition
 - **📦 Modular Architecture**: Service-based design for maintainability
 - **🖥️ Standardized UI**: Consistent 100-column width for all views
 - **✨ Modern Code**: 100% clean build with zero warnings (Nullable Reference Types enabled)
-- **🔐 Secure OAuth2**: Industry-standard authentication with automatic token refresh
 
 ## 📋 Commands
 
@@ -31,6 +28,7 @@ A lightweight, modern C# CLI tool for managing your [Toodledo](https://www.toodl
 | `list` | Display all current tasks in a formatted table |
 | `add [text]` | Create a new task (supports shorthands) |
 | `edit [id]` | Edit task using "Shadow Prompt" shorthand mode |
+| `view [id]` | View full task details (including notes) |
 | `tag [id] [tags]` | Quickly update tags for a task |
 | `note [id] [text]` | Quickly update note for a task |
 | `done [id]` | Mark a task as completed |
@@ -39,16 +37,16 @@ A lightweight, modern C# CLI tool for managing your [Toodledo](https://www.toodl
 | `filter [k:v]` | Power-user filters (e.g., `filter p:1 f:Inbox @Work`) |
 | `folders` | List all folders |
 | `add-folder [name]` | Create a new folder |
-| `edit-folder [id|name] [new]` | Rename a folder |
-| `delete-folder [id|name]` | Remove a folder |
+| `edit-folder [i|n] [new]` | Rename a folder (by ID or name) |
+| `delete-folder [i|n]` | Remove a folder (by ID or name) |
 | `contexts` | List all contexts |
 | `add-context [name]` | Create a new context |
-| `edit-context [id|name] [new]` | Rename a context |
-| `delete-context [id|name]` | Remove a context |
+| `edit-context [i|n] [new]` | Rename a context (by ID or name) |
+| `delete-context [i|n]` | Remove a context (by ID or name) |
 | `locations` | List all locations |
 | `add-location [name]` | Create a new location |
-| `edit-location [id|name] [new]` | Rename a location |
-| `delete-location [id|name]` | Remove a location |
+| `edit-location [i|n] [new]` | Rename a location (by ID or name) |
+| `delete-location [i|n]` | Remove a location (by ID or name) |
 | `random` | Pick a random task |
 | `help` | Show available commands and usage information |
 | `exit` | Close the application |
