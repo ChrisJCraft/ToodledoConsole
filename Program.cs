@@ -14,14 +14,14 @@ namespace ToodledoConsole
 
     class Program
     {
-        private static AuthService _authService;
-        private static TaskService _taskService;
-        private static ContextService _contextService;
-        private static FolderService _folderService;
-        private static LocationService _locationService;
-        private static FilterService _filterService;
-        private static TaskParserService _taskParserService;
-        private static InputService _inputService;
+        private static AuthService _authService = null!;
+        private static TaskService _taskService = null!;
+        private static ContextService _contextService = null!;
+        private static FolderService _folderService = null!;
+        private static LocationService _locationService = null!;
+        private static FilterService _filterService = null!;
+        private static TaskParserService _taskParserService = null!;
+        private static InputService _inputService = null!;
         
         private static readonly HttpClient _httpClient = new HttpClient();
         private static List<ToodledoTask> _cachedTasks = new List<ToodledoTask>();

@@ -34,7 +34,7 @@ namespace ToodledoConsole
                     folders.Add(new ToodledoFolder
                     {
                         id = idProp.GetInt64(),
-                        name = element.GetProperty("name").GetString()
+                        name = element.GetProperty("name").GetString() ?? "Unknown"
                     });
                 }
             }

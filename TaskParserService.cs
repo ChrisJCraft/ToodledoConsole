@@ -10,8 +10,8 @@ namespace ToodledoConsole
         private readonly TaskService _taskService;
         private readonly FolderService _folderService;
         private readonly ContextService _contextService;
-        private List<ToodledoFolder> _folders;
-        private List<ToodledoContext> _contexts;
+        private List<ToodledoFolder>? _folders;
+        private List<ToodledoContext>? _contexts;
 
         public TaskParserService(TaskService taskService, FolderService folderService, ContextService contextService)
         {

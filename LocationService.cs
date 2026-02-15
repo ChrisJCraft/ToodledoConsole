@@ -34,8 +34,8 @@ namespace ToodledoConsole
                     locations.Add(new ToodledoLocation
                     {
                         id = idProp.GetInt64(),
-                        name = element.GetProperty("name").GetString() ?? "Unknown",
-                        description = element.TryGetProperty("description", out var descProp) ? descProp.GetString() ?? "" : "",
+                        name = (element.GetProperty("name").GetString() ?? "Unknown"),
+                        description = (element.TryGetProperty("description", out var descProp) ? descProp.GetString() ?? "" : ""),
                         lat = element.TryGetProperty("lat", out var latProp) ? latProp.GetDouble() : 0,
                         lon = element.TryGetProperty("lon", out var lonProp) ? lonProp.GetDouble() : 0
                     });

@@ -15,8 +15,8 @@ namespace ToodledoConsole
         private const string TokenFile = "token.txt";
         private const string RedirectUri = "http://localhost:5000/";
 
-        private string _clientId;
-        private string _clientSecret;
+        private string _clientId = string.Empty;
+        private string _clientSecret = string.Empty;
         private TokenStorage _tokens = new TokenStorage();
         private readonly HttpClient _httpClient;
         private readonly JsonSerializerOptions _jsonOptions;
@@ -73,6 +73,7 @@ namespace ToodledoConsole
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/account/token.php", new FormUrlEncodedContent(values));
             if (!response.IsSuccessStatusCode) return false;
             var data = JsonSerializer.Deserialize<TokenResponse>(await response.Content.ReadAsStringAsync(), _jsonOptions);
+            if (data == null) return false;
             _tokens.AccessToken = data.access_token; _tokens.RefreshToken = data.refresh_token;
             SaveTokens(); return true;
         }
@@ -90,14 +91,14 @@ namespace ToodledoConsole
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = RedirectUri, UseShellExecute = true }); 
             } catch { }
 
-            string code = null;
+            string? code = null;
             while (string.IsNullOrEmpty(code))
             {
                 var context = await listener.GetContextAsync();
                 var request = context.Request;
                 var response = context.Response;
 
-                if (request.Url.AbsolutePath == "/")
+                if (request.Url?.AbsolutePath == "/")
                 {
                     code = request.QueryString["code"];
                     if (!string.IsNullOrEmpty(code))
@@ -144,9 +145,12 @@ namespace ToodledoConsole
             {
                  var json = await apiResponse.Content.ReadAsStringAsync();
                  var data = JsonSerializer.Deserialize<TokenResponse>(json, _jsonOptions);
-                 _tokens.AccessToken = data.access_token; 
-                 _tokens.RefreshToken = data.refresh_token; // Note: Toodledo might not return refresh token on first auth without offline_access or similar, but let's assume it does for now as per previous code
-                 SaveTokens();
+                 if (data != null)
+                 {
+                     _tokens.AccessToken = data.access_token; 
+                     _tokens.RefreshToken = data.refresh_token; 
+                     SaveTokens();
+                 }
             }
             else
             {

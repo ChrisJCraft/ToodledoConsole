@@ -59,8 +59,8 @@ namespace ToodledoConsole
                 if (!element.TryGetProperty("id", out var idValue)) continue;
 
                 var task = new ToodledoTask { 
-                    id = idValue.ValueKind == JsonValueKind.Number ? idValue.GetInt64().ToString() : idValue.GetString(),
-                    title = element.TryGetProperty("title", out var tProp) ? tProp.GetString() : "No Title"
+                    id = (idValue.ValueKind == JsonValueKind.Number ? idValue.GetInt64().ToString() : idValue.GetString()) ?? string.Empty,
+                    title = (element.TryGetProperty("title", out var tProp) ? tProp.GetString() : "No Title") ?? "No Title"
                 };
 
                     if (element.TryGetProperty("priority", out var pProp)) task.priority = pProp.GetInt32();
@@ -69,15 +69,15 @@ namespace ToodledoConsole
                     if (element.TryGetProperty("star", out var sProp)) task.star = sProp.GetInt32();
                     if (element.TryGetProperty("duedate", out var dProp)) task.duedate = dProp.GetInt64();
                     if (element.TryGetProperty("status", out var stProp)) task.status = stProp.GetInt32();
-                    if (element.TryGetProperty("tag", out var tagProp)) task.tag = tagProp.GetString();
-                    if (element.TryGetProperty("note", out var noteProp)) task.note = noteProp.GetString();
+                    if (element.TryGetProperty("tag", out var tagProp)) task.tag = tagProp.GetString() ?? string.Empty;
+                    if (element.TryGetProperty("note", out var noteProp)) task.note = noteProp.GetString() ?? string.Empty;
 
                     tasks.Add(task);
             }
             return tasks;
         }
 
-        public async Task<ToodledoTask> GetTaskAsync(string id)
+        public async Task<ToodledoTask?> GetTaskAsync(string id)
         {
             var fields = "folder,context,star,priority,duedate,status,tag,note";
             var url = $"https://api.toodledo.com/3/tasks/get.php?access_token={_authService.AccessToken}&id={id}&fields={fields}";
@@ -93,16 +93,16 @@ namespace ToodledoConsole
                 if (element.TryGetProperty("id", out var idValue))
                 {
                     return new ToodledoTask { 
-                        id = idValue.ValueKind == JsonValueKind.Number ? idValue.GetInt64().ToString() : idValue.GetString(),
-                        title = element.TryGetProperty("title", out var tProp) ? tProp.GetString() : "No Title",
+                        id = (idValue.ValueKind == JsonValueKind.Number ? idValue.GetInt64().ToString() : idValue.GetString()) ?? string.Empty,
+                        title = (element.TryGetProperty("title", out var tProp) ? tProp.GetString() : "No Title") ?? "No Title",
                         priority = element.TryGetProperty("priority", out var pProp) ? pProp.GetInt32() : 0,
                         folder = element.TryGetProperty("folder", out var fProp) ? fProp.GetInt64() : 0,
                         context = element.TryGetProperty("context", out var cProp) ? cProp.GetInt64() : 0,
                         star = element.TryGetProperty("star", out var sProp) ? sProp.GetInt32() : 0,
                         duedate = element.TryGetProperty("duedate", out var dProp) ? dProp.GetInt64() : 0,
                         status = element.TryGetProperty("status", out var stProp) ? stProp.GetInt32() : 0,
-                        tag = element.TryGetProperty("tag", out var tagProp) ? tagProp.GetString() : "",
-                        note = element.TryGetProperty("note", out var noteProp) ? noteProp.GetString() : ""
+                        tag = (element.TryGetProperty("tag", out var tagProp) ? tagProp.GetString() : "") ?? "",
+                        note = (element.TryGetProperty("note", out var noteProp) ? noteProp.GetString() : "") ?? ""
                     };
                 }
             }
