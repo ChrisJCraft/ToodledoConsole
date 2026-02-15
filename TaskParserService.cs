@@ -134,6 +134,12 @@ namespace ToodledoConsole
             return string.Join(" ", parts);
         }
 
+        public void ClearCache()
+        {
+            _folders = null;
+            _contexts = null;
+        }
+
         private async Task<long?> GetFolderIdByName(string name)
         {
             if (_folders == null)

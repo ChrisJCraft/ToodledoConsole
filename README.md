@@ -47,7 +47,7 @@ A lightweight, modern C# CLI tool for managing your [Toodledo](https://www.toodl
 | `add-location [name]` | Create a new location |
 | `edit-location [i|n] [new]` | Rename a location (by ID or name) |
 | `delete-location [i|n]` | Remove a location (by ID or name) |
-| `random` | Pick a random task |
+| `random [k:v]` | Pick a random task (supports selectors like `random p:2`) |
 | `help` | Show available commands and usage information |
 | `exit` | Close the application |
 

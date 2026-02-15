@@ -242,7 +242,7 @@ namespace ToodledoConsole
             table.AddRow("[cyan]delete-location[/] [white]<id|name>[/]", "[dim]Remove a location[/]");
             table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
             table.AddRow("[cyan]filter[/] [white][[k:v]][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");
-            table.AddRow("[cyan]random[/]", "[dim]Show a random task[/]");
+            table.AddRow("[cyan]random[/] [white][[k:v]][/]", "[dim]Show random task (supports selectors like p:2, @Work)[/]");
             table.AddRow("[cyan]help[/]", "[dim]Show this help message[/]");
             table.AddRow("[cyan]exit[/]", "[dim]Exit the application[/]");
 

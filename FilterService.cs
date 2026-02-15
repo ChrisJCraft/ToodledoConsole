@@ -31,6 +31,36 @@ namespace ToodledoConsole
                 filtered = filtered.Where(t => t.title.Contains(criteria.SearchTerm, StringComparison.OrdinalIgnoreCase));
             }
 
+            // Priority
+            if (criteria.Priority.HasValue)
+            {
+                filtered = filtered.Where(t => t.priority == criteria.Priority.Value);
+            }
+
+            // Folder
+            if (criteria.FolderId.HasValue)
+            {
+                filtered = filtered.Where(t => t.folder == criteria.FolderId.Value);
+            }
+
+            // Context
+            if (criteria.ContextId.HasValue)
+            {
+                filtered = filtered.Where(t => t.context == criteria.ContextId.Value);
+            }
+
+            // Star
+            if (criteria.Starred.HasValue)
+            {
+                filtered = filtered.Where(t => t.star == criteria.Starred.Value);
+            }
+
+            // Status
+            if (criteria.Status.HasValue)
+            {
+                filtered = filtered.Where(t => t.status == criteria.Status.Value);
+            }
+
             // Due Date Shortcuts
             if (!string.IsNullOrEmpty(criteria.DueDateShortcut))
             {

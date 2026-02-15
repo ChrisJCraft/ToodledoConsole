@@ -127,6 +127,7 @@ namespace ToodledoConsole
                 else if (lowerInput == "list") await ListTasks();
                 else if (lowerInput == "contexts") await ListContexts();
                 else if (lowerInput == "random") await ShowRandom();
+                else if (lowerInput.StartsWith("random ")) await ShowRandom(cleanInput.Substring(7).Trim());
                 else if (lowerInput.StartsWith("filter ")) await FilterTasks(cleanInput.Substring(7).Trim());
                 else if (lowerInput.StartsWith("find ")) await SearchTasks(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("done ")) await CompleteTask(cleanInput.Substring(5).Trim());
@@ -266,22 +267,54 @@ namespace ToodledoConsole
         }
 
 
-        private static async Task ShowRandom()
+        private static async Task ShowRandom(string? filterExpression = null)
         {
-            if (_cachedTasks.Count == 0) await ListTasks();
-            if (_cachedTasks.Count == 0) return;
+            List<ToodledoTask> pool;
+
+            if (string.IsNullOrWhiteSpace(filterExpression))
+            {
+                if (_cachedTasks.Count == 0) await ListTasks();
+                pool = _cachedTasks;
+            }
+            else
+            {
+                try
+                {
+                    var criteria = await _filterService.ParseFilterExpression(filterExpression);
+                    var queryParams = _filterService.BuildApiQueryString(criteria);
+                    var tasks = await AnsiConsole.Status()
+                        .Spinner(Spinner.Known.Dots)
+                        .SpinnerStyle(Style.Parse("cyan"))
+                        .StartAsync($"[cyan]Picking random from {filterExpression}...[/]", async ctx =>
+                        {
+                            return await _taskService.GetTasksAsync(queryParams);
+                        });
+                    pool = _filterService.ApplyClientSideFilters(tasks, criteria);
+                }
+                catch (Exception ex)
+                {
+                    AnsiConsole.MarkupLine($"[red]✗ Filter error:[/] {ex.Message.EscapeMarkup()}");
+                    return;
+                }
+            }
+
+            if (pool.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No tasks found matching your selection.[/]");
+                return;
+            }
 
             LoadRandomState();
             
             // Get candidates (tasks not yet seen)
-            var candidates = _cachedTasks.Where(t => !_seenTaskIds.Contains(t.id)).ToList();
+            var candidates = pool.Where(t => !_seenTaskIds.Contains(t.id)).ToList();
             
-            // If all tasks have been seen, reset the cycle
+            // If all matching tasks have been seen, reset only those for a fresh cycle
             if (candidates.Count == 0)
             {
-                _seenTaskIds.Clear();
-                candidates = _cachedTasks.ToList();
-                AnsiConsole.MarkupLine("[yellow]🔄 CYCLE COMPLETE - Starting fresh random order[/]");
+                foreach (var taskItem in pool) _seenTaskIds.Remove(taskItem.id);
+                candidates = pool.ToList();
+                AnsiConsole.MarkupLine("[yellow]🔄 CYCLE COMPLETE for this selection - Starting fresh random order[/]");
             }
             
             // Pick random task from candidates
@@ -302,7 +335,7 @@ namespace ToodledoConsole
             AnsiConsole.WriteLine();
             AnsiConsole.Write(panel);
             AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine($"[dim]Progress: {_seenTaskIds.Count}/{_cachedTasks.Count} tasks shown this cycle[/]");
+            AnsiConsole.MarkupLine($"[dim]Progress for this selection: {pool.Count(t => _seenTaskIds.Contains(t.id))}/{pool.Count} tasks shown this cycle[/]");
         }
 
         private static void LoadRandomState()
@@ -559,7 +592,10 @@ namespace ToodledoConsole
                 });
 
             if (success)
+            {
+                _taskParserService.ClearCache();
                 AnsiConsole.MarkupLine($"[green]✓ Context Added:[/] {name.EscapeMarkup()}");
+            }
             else
                 AnsiConsole.MarkupLine("[red]✗ Error adding context.[/]");
         }
@@ -600,7 +636,10 @@ namespace ToodledoConsole
                 });
 
             if (success)
+            {
+                _taskParserService.ClearCache();
                 AnsiConsole.MarkupLine($"[green]✓ Context Updated:[/] {newName.EscapeMarkup()}");
+            }
             else
                 AnsiConsole.MarkupLine("[red]✗ Error updating context.[/]");
         }
@@ -639,7 +678,10 @@ namespace ToodledoConsole
                 });
 
             if (success)
+            {
+                _taskParserService.ClearCache();
                 AnsiConsole.MarkupLine("[green]✓ Context Deleted![/]");
+            }
             else
                 AnsiConsole.MarkupLine("[red]✗ Error deleting context.[/]");
         }
@@ -681,7 +723,10 @@ namespace ToodledoConsole
                 });
 
             if (success)
+            {
+                _taskParserService.ClearCache();
                 AnsiConsole.MarkupLine($"[green]✓ Folder Added:[/] {name.EscapeMarkup()}");
+            }
             else
                 AnsiConsole.MarkupLine("[red]✗ Error adding folder.[/]");
         }
@@ -722,7 +767,10 @@ namespace ToodledoConsole
                 });
 
             if (success)
+            {
+                _taskParserService.ClearCache();
                 AnsiConsole.MarkupLine($"[green]✓ Folder Updated:[/] {newName.EscapeMarkup()}");
+            }
             else
                 AnsiConsole.MarkupLine("[red]✗ Error updating folder.[/]");
         }
@@ -761,7 +809,10 @@ namespace ToodledoConsole
                 });
 
             if (success)
+            {
+                _taskParserService.ClearCache();
                 AnsiConsole.MarkupLine("[green]✓ Folder Deleted![/]");
+            }
             else
                 AnsiConsole.MarkupLine("[red]✗ Error deleting folder.[/]");
         }
