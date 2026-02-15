@@ -177,6 +177,37 @@ namespace ToodledoConsole
             AnsiConsole.MarkupLine($"[dim]Total Folders: {folders.Count}[/]");
         }
 
+        public static void DisplayLocations(List<ToodledoLocation> locations)
+        {
+            if (locations.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No locations found.[/]");
+                return;
+            }
+
+            var table = new Table();
+            table.Border(TableBorder.Rounded);
+            table.BorderStyle(Style.Parse("cyan"));
+            
+            table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
+            table.AddColumn(new TableColumn("[cyan]Location Name[/]").LeftAligned());
+            table.AddColumn(new TableColumn("[cyan]Description[/]").LeftAligned());
+
+            foreach (var loc in locations)
+            {
+                table.AddRow(
+                    $"[dim]{loc.id}[/]",
+                    $"[white]{loc.name.EscapeMarkup()}[/]",
+                    $"[dim]{loc.description.EscapeMarkup()}[/]"
+                );
+            }
+
+            AnsiConsole.WriteLine();
+            AnsiConsole.Write(table);
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine($"[dim]Total Locations: {locations.Count}[/]");
+        }
+
         public static void DisplayHelp()
         {
             var table = new Table();
@@ -203,6 +234,10 @@ namespace ToodledoConsole
             table.AddRow("[cyan]add-folder[/] [white]<name>[/]", "[dim]Create a new folder[/]");
             table.AddRow("[cyan]edit-folder[/] [white]<id|name> <new>[/]", "[dim]Rename a folder[/]");
             table.AddRow("[cyan]delete-folder[/] [white]<id|name>[/]", "[dim]Remove a folder[/]");
+            table.AddRow("[cyan]locations[/]", "[dim]Display all locations[/]");
+            table.AddRow("[cyan]add-location[/] [white]<name>[/]", "[dim]Create a new location[/]");
+            table.AddRow("[cyan]edit-location[/] [white]<id|name> <new>[/]", "[dim]Rename a location[/]");
+            table.AddRow("[cyan]delete-location[/] [white]<id|name>[/]", "[dim]Remove a location[/]");
             table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
             table.AddRow("[cyan]filter[/] [white][[k:v]][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");
             table.AddRow("[cyan]random[/]", "[dim]Show a random task[/]");

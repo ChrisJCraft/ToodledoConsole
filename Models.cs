@@ -41,6 +41,15 @@ namespace ToodledoConsole
         public string name { get; set; }
     }
 
+    public class ToodledoLocation
+    {
+        public long id { get; set; }
+        public string name { get; set; }
+        public string description { get; set; }
+        public double lat { get; set; }
+        public double lon { get; set; }
+    }
+
     public class FilterCriteria
     {
         public int? Priority { get; set; }

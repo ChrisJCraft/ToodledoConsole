@@ -18,6 +18,7 @@ namespace ToodledoConsole
         private static TaskService _taskService;
         private static ContextService _contextService;
         private static FolderService _folderService;
+        private static LocationService _locationService;
         private static FilterService _filterService;
         private static TaskParserService _taskParserService;
         private static InputService _inputService;
@@ -48,6 +49,7 @@ namespace ToodledoConsole
                 _taskService = new TaskService(_httpClient, _authService, _jsonOptions);
                 _contextService = new ContextService(_httpClient, _authService, _jsonOptions);
                 _folderService = new FolderService(_httpClient, _authService, _jsonOptions);
+                _locationService = new LocationService(_httpClient, _authService, _jsonOptions);
                 _taskParserService = new TaskParserService(_taskService, _folderService, _contextService);
                 _filterService = new FilterService(_taskService, _taskParserService);
                 _inputService = new InputService();
@@ -130,6 +132,10 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("add-folder ")) await AddFolder(cleanInput.Substring(11).Trim());
                 else if (lowerInput.StartsWith("edit-folder ")) await EditFolder(cleanInput.Substring(12).Trim());
                 else if (lowerInput.StartsWith("delete-folder ")) await DeleteFolder(cleanInput.Substring(14).Trim());
+                else if (lowerInput == "locations") await ListLocations();
+                else if (lowerInput.StartsWith("add-location ")) await AddLocation(cleanInput.Substring(13).Trim());
+                else if (lowerInput.StartsWith("edit-location ")) await EditLocation(cleanInput.Substring(14).Trim());
+                else if (lowerInput.StartsWith("delete-location ")) await DeleteLocation(cleanInput.Substring(16).Trim());
                 else if (lowerInput.StartsWith("delete ")) await DeleteTask(cleanInput.Substring(7).Trim());
                 else AnsiConsole.MarkupLine("[red]Unknown command. Type 'help' for available commands.[/]");
             }
@@ -762,6 +768,128 @@ namespace ToodledoConsole
                     });
 
                 UIService.DisplayFolders(folders);
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message.EscapeMarkup()}");
+            }
+        }
+
+        private static async Task AddLocation(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                AnsiConsole.MarkupLine("[red]Usage: add-location <name>[/]");
+                return;
+            }
+
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("cyan"))
+                .StartAsync("[cyan]Adding location...[/]", async ctx =>
+                {
+                    return await _locationService.AddLocationAsync(name);
+                });
+
+            if (success)
+                AnsiConsole.MarkupLine($"[green]✓ Location Added:[/] {name.EscapeMarkup()}");
+            else
+                AnsiConsole.MarkupLine("[red]✗ Error adding location.[/]");
+        }
+
+        private static async Task EditLocation(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                AnsiConsole.MarkupLine("[red]Usage: edit-location <id_or_name> <new_name>[/]");
+                return;
+            }
+
+            var parts = input.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2)
+            {
+                AnsiConsole.MarkupLine("[red]Usage: edit-location <id_or_name> <new_name>[/]");
+                return;
+            }
+
+            string identifier = parts[0];
+            string newName = parts[1];
+
+            var locations = await _locationService.GetLocationsAsync();
+            var loc = locations.FirstOrDefault(l => l.id.ToString() == identifier || l.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
+
+            if (loc == null)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Location not found: {identifier}[/]");
+                return;
+            }
+
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("cyan"))
+                .StartAsync("[cyan]Updating location...[/]", async ctx =>
+                {
+                    return await _locationService.EditLocationAsync(loc.id, newName);
+                });
+
+            if (success)
+                AnsiConsole.MarkupLine($"[green]✓ Location Updated:[/] {newName.EscapeMarkup()}");
+            else
+                AnsiConsole.MarkupLine("[red]✗ Error updating location.[/]");
+        }
+
+        private static async Task DeleteLocation(string identifier)
+        {
+            if (string.IsNullOrWhiteSpace(identifier))
+            {
+                AnsiConsole.MarkupLine("[red]Usage: delete-location <id_or_name>[/]");
+                return;
+            }
+
+            var locations = await _locationService.GetLocationsAsync();
+            var loc = locations.FirstOrDefault(l => l.id.ToString() == identifier || l.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
+
+            if (loc == null)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Location not found: {identifier}[/]");
+                return;
+            }
+
+            AnsiConsole.MarkupLine($"[yellow]Are you sure you want to delete location:[/] [white]{loc.name}[/]? [dim](y/n)[/]");
+            var key = Console.ReadKey(true);
+            if (key.Key != ConsoleKey.Y)
+            {
+                AnsiConsole.MarkupLine("[yellow]Delete cancelled.[/]");
+                return;
+            }
+
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("red"))
+                .StartAsync("[red]Deleting location...[/]", async ctx =>
+                {
+                    return await _locationService.DeleteLocationAsync(loc.id);
+                });
+
+            if (success)
+                AnsiConsole.MarkupLine("[green]✓ Location Deleted![/]");
+            else
+                AnsiConsole.MarkupLine("[red]✗ Error deleting location.[/]");
+        }
+
+        private static async Task ListLocations()
+        {
+            try
+            {
+                var locations = await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("cyan"))
+                    .StartAsync("[cyan]Loading locations...[/]", async ctx =>
+                    {
+                        return await _locationService.GetLocationsAsync();
+                    });
+
+                UIService.DisplayLocations(locations);
             }
             catch (Exception ex)
             {
