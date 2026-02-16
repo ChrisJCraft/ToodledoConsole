@@ -34,12 +34,20 @@ namespace ToodledoConsole
             if (!string.IsNullOrEmpty(criteria.Tag)) taskObject["tag"] = criteria.Tag;
             if (!string.IsNullOrEmpty(criteria.Note)) taskObject["note"] = criteria.Note;
 
-            var taskData = JsonSerializer.Serialize(new[] { taskObject });
+            var taskData = JsonSerializer.Serialize(new[] { taskObject }, _jsonOptions);
             var content = new FormUrlEncodedContent(new[] {
                 new KeyValuePair<string, string>("access_token", _authService.AccessToken),
                 new KeyValuePair<string, string>("tasks", taskData)
             });
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/tasks/add.php", content);
+            var responseJson = await response.Content.ReadAsStringAsync();
+
+            using var doc = JsonDocument.Parse(responseJson);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("errorCode", out var errCode))
+            {
+                throw new ToodledoApiException(errCode.GetInt32(), doc.RootElement.GetProperty("errorDesc").GetString() ?? "Unknown API Error");
+            }
+
             return response.IsSuccessStatusCode;
         }
 
@@ -51,6 +59,11 @@ namespace ToodledoConsole
             var json = await _httpClient.GetStringAsync(url);
             using var doc = JsonDocument.Parse(json);
             
+            if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("errorCode", out var errCode))
+            {
+                throw new ToodledoApiException(errCode.GetInt32(), doc.RootElement.GetProperty("errorDesc").GetString() ?? "Unknown API Error");
+            }
+
             if (doc.RootElement.ValueKind != JsonValueKind.Array) return new List<ToodledoTask>();
             
             var tasks = new List<ToodledoTask>();
@@ -86,6 +99,11 @@ namespace ToodledoConsole
             var json = await _httpClient.GetStringAsync(url);
             using var doc = JsonDocument.Parse(json);
             
+            if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("errorCode", out var errCode))
+            {
+                throw new ToodledoApiException(errCode.GetInt32(), doc.RootElement.GetProperty("errorDesc").GetString() ?? "Unknown API Error");
+            }
+
             if (doc.RootElement.ValueKind != JsonValueKind.Array) return null;
             
             // Toodledo API returns an array where the first element is metadata
@@ -130,12 +148,20 @@ namespace ToodledoConsole
             if (!string.IsNullOrEmpty(criteria.Tag)) taskObject["tag"] = criteria.Tag;
             if (!string.IsNullOrEmpty(criteria.Note)) taskObject["note"] = criteria.Note;
 
-            var taskData = JsonSerializer.Serialize(new[] { taskObject });
+            var taskData = JsonSerializer.Serialize(new[] { taskObject }, _jsonOptions);
             var content = new FormUrlEncodedContent(new[] {
                 new KeyValuePair<string, string>("access_token", _authService.AccessToken),
                 new KeyValuePair<string, string>("tasks", taskData)
             });
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/tasks/edit.php", content);
+            var responseJson = await response.Content.ReadAsStringAsync();
+
+            using var doc = JsonDocument.Parse(responseJson);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("errorCode", out var errCode))
+            {
+                throw new ToodledoApiException(errCode.GetInt32(), doc.RootElement.GetProperty("errorDesc").GetString() ?? "Unknown API Error");
+            }
+
             return response.IsSuccessStatusCode;
         }
 
@@ -147,6 +173,14 @@ namespace ToodledoConsole
                 new KeyValuePair<string, string>("tasks", taskData)
             });
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/tasks/edit.php", content);
+            var responseJson = await response.Content.ReadAsStringAsync();
+
+            using var doc = JsonDocument.Parse(responseJson);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("errorCode", out var errCode))
+            {
+                throw new ToodledoApiException(errCode.GetInt32(), doc.RootElement.GetProperty("errorDesc").GetString() ?? "Unknown API Error");
+            }
+
             return response.IsSuccessStatusCode;
         }
 
@@ -158,6 +192,14 @@ namespace ToodledoConsole
                 new KeyValuePair<string, string>("tasks", taskData)
             });
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/tasks/delete.php", content);
+            var responseJson = await response.Content.ReadAsStringAsync();
+
+            using var doc = JsonDocument.Parse(responseJson);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("errorCode", out var errCode))
+            {
+                throw new ToodledoApiException(errCode.GetInt32(), doc.RootElement.GetProperty("errorDesc").GetString() ?? "Unknown API Error");
+            }
+
             return response.IsSuccessStatusCode;
         }
 
@@ -167,6 +209,11 @@ namespace ToodledoConsole
             var json = await _httpClient.GetStringAsync(url);
             using var doc = JsonDocument.Parse(json);
             
+            if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("errorCode", out var errCode))
+            {
+                throw new ToodledoApiException(errCode.GetInt32(), doc.RootElement.GetProperty("errorDesc").GetString() ?? "Unknown API Error");
+            }
+
             if (doc.RootElement.ValueKind != JsonValueKind.Array) return 0;
             
             // Toodledo API returns an array where the first element is metadata

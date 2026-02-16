@@ -126,7 +126,7 @@ namespace ToodledoConsole
                 if (lowerInput == "help") UIService.DisplayHelp();
                 else if (lowerInput == "list") await ListTasks();
                 else if (lowerInput == "stats") await ShowStats();
-                else if (lowerInput == "contexts") await ListContexts();
+                else if (lowerInput == "contexts" || lowerInput.StartsWith("contexts ")) await ListContexts(cleanInput.Length > 8 ? cleanInput.Substring(9).Trim() : "");
                 else if (lowerInput == "random") await ShowRandom();
                 else if (lowerInput.StartsWith("random ")) await ShowRandom(cleanInput.Substring(7).Trim());
                 else if (lowerInput.StartsWith("filter ")) await FilterTasks(cleanInput.Substring(7).Trim());
@@ -140,15 +140,17 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("add-context ")) await AddContext(cleanInput.Substring(12).Trim());
                 else if (lowerInput.StartsWith("edit-context ")) await EditContext(cleanInput.Substring(13).Trim());
                 else if (lowerInput.StartsWith("delete-context ")) await DeleteContext(cleanInput.Substring(15).Trim());
-                else if (lowerInput == "folders") await ListFolders();
+                else if (lowerInput == "folders" || lowerInput.StartsWith("folders ")) await ListFolders(cleanInput.Length > 7 ? cleanInput.Substring(8).Trim() : "");
                 else if (lowerInput.StartsWith("add-folder ")) await AddFolder(cleanInput.Substring(11).Trim());
                 else if (lowerInput.StartsWith("edit-folder ")) await EditFolder(cleanInput.Substring(12).Trim());
                 else if (lowerInput.StartsWith("delete-folder ")) await DeleteFolder(cleanInput.Substring(14).Trim());
-                else if (lowerInput == "locations") await ListLocations();
+                else if (lowerInput == "locations" || lowerInput.StartsWith("locations ")) await ListLocations(cleanInput.Length > 9 ? cleanInput.Substring(10).Trim() : "");
                 else if (lowerInput.StartsWith("add-location ")) await AddLocation(cleanInput.Substring(13).Trim());
                 else if (lowerInput.StartsWith("edit-location ")) await EditLocation(cleanInput.Substring(14).Trim());
                 else if (lowerInput.StartsWith("delete-location ")) await DeleteLocation(cleanInput.Substring(16).Trim());
                 else if (lowerInput.StartsWith("delete ")) await DeleteTask(cleanInput.Substring(7).Trim());
+                else if (lowerInput == "dev-import") await ImportReleaseTasks();
+                else if (lowerInput == "dev-cleanup") await CleanupReleaseTasks();
                 else AnsiConsole.MarkupLine("[red]Unknown command. Type 'help' for available commands.[/]");
             }
         }
@@ -609,21 +611,28 @@ namespace ToodledoConsole
                 return;
             }
 
-            bool success = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .SpinnerStyle(Style.Parse("cyan"))
-                .StartAsync("[cyan]Adding context...[/]", async ctx =>
-                {
-                    return await _contextService.AddContextAsync(name);
-                });
-
-            if (success)
+            try
             {
-                _taskParserService.ClearCache();
-                AnsiConsole.MarkupLine($"[green]✓ Context Added:[/] {name.EscapeMarkup()}");
+                bool success = await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("cyan"))
+                    .StartAsync("[cyan]Adding context...[/]", async ctx =>
+                    {
+                        return await _contextService.AddContextAsync(name);
+                    });
+
+                if (success)
+                {
+                    _taskParserService.ClearCache();
+                    AnsiConsole.MarkupLine($"[green]✓ Context Added:[/] {name.EscapeMarkup()}");
+                }
+                else
+                    AnsiConsole.MarkupLine("[red]✗ Error adding context.[/]");
             }
-            else
-                AnsiConsole.MarkupLine("[red]✗ Error adding context.[/]");
+            catch (ToodledoApiException ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ API Error ({ex.ErrorCode}):[/] {ex.Message.EscapeMarkup()}");
+            }
         }
 
         private static async Task EditContext(string input)
@@ -644,30 +653,41 @@ namespace ToodledoConsole
             string identifier = parts[0];
             string newName = parts[1];
 
-            var contexts = await _contextService.GetContextsAsync();
-            var context = contexts.FirstOrDefault(c => c.id.ToString() == identifier || c.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
-
-            if (context == null)
+            try
             {
-                AnsiConsole.MarkupLine($"[red]✗ Context not found: {identifier}[/]");
-                return;
-            }
+                var contexts = await _contextService.GetContextsAsync();
+                var context = contexts.FirstOrDefault(c => c.id.ToString() == identifier || c.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
 
-            bool success = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .SpinnerStyle(Style.Parse("cyan"))
-                .StartAsync("[cyan]Updating context...[/]", async ctx =>
+                if (context == null)
                 {
-                    return await _contextService.EditContextAsync(context.id, newName);
-                });
+                    AnsiConsole.MarkupLine($"[red]✗ Context not found: {identifier}[/]");
+                    return;
+                }
 
-            if (success)
-            {
-                _taskParserService.ClearCache();
-                AnsiConsole.MarkupLine($"[green]✓ Context Updated:[/] {newName.EscapeMarkup()}");
+                bool success = await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("cyan"))
+                    .StartAsync("[cyan]Updating context...[/]", async ctx =>
+                    {
+                        return await _contextService.EditContextAsync(context.id, newName);
+                    });
+
+                if (success)
+                {
+                    _taskParserService.ClearCache();
+                    AnsiConsole.MarkupLine($"[green]✓ Context Updated:[/] {newName.EscapeMarkup()}");
+                }
+                else
+                    AnsiConsole.MarkupLine("[red]✗ Error updating context.[/]");
             }
-            else
-                AnsiConsole.MarkupLine("[red]✗ Error updating context.[/]");
+            catch (ToodledoApiException ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ API Error ({ex.ErrorCode}):[/] {ex.Message.EscapeMarkup()}");
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message.EscapeMarkup()}");
+            }
         }
 
         private static async Task DeleteContext(string identifier)
@@ -678,41 +698,52 @@ namespace ToodledoConsole
                 return;
             }
 
-            var contexts = await _contextService.GetContextsAsync();
-            var context = contexts.FirstOrDefault(c => c.id.ToString() == identifier || c.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
-
-            if (context == null)
+            try
             {
-                AnsiConsole.MarkupLine($"[red]✗ Context not found: {identifier}[/]");
-                return;
-            }
+                var contexts = await _contextService.GetContextsAsync();
+                var context = contexts.FirstOrDefault(c => c.id.ToString() == identifier || c.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
 
-            AnsiConsole.MarkupLine($"[yellow]Are you sure you want to delete context:[/] [white]{context.name}[/]? [dim](y/n)[/]");
-            var key = Console.ReadKey(true);
-            if (key.Key != ConsoleKey.Y)
-            {
-                AnsiConsole.MarkupLine("[yellow]Delete cancelled.[/]");
-                return;
-            }
-
-            bool success = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .SpinnerStyle(Style.Parse("red"))
-                .StartAsync("[red]Deleting context...[/]", async ctx =>
+                if (context == null)
                 {
-                    return await _contextService.DeleteContextAsync(context.id);
-                });
+                    AnsiConsole.MarkupLine($"[red]✗ Context not found: {identifier}[/]");
+                    return;
+                }
 
-            if (success)
-            {
-                _taskParserService.ClearCache();
-                AnsiConsole.MarkupLine("[green]✓ Context Deleted![/]");
+                AnsiConsole.MarkupLine($"[yellow]Are you sure you want to delete context:[/] [white]{context.name}[/]? [dim](y/n)[/]");
+                var key = Console.ReadKey(true);
+                if (key.Key != ConsoleKey.Y)
+                {
+                    AnsiConsole.MarkupLine("[yellow]Delete cancelled.[/]");
+                    return;
+                }
+
+                bool success = await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("red"))
+                    .StartAsync("[red]Deleting context...[/]", async ctx =>
+                    {
+                        return await _contextService.DeleteContextAsync(context.id);
+                    });
+
+                if (success)
+                {
+                    _taskParserService.ClearCache();
+                    AnsiConsole.MarkupLine("[green]✓ Context Deleted![/]");
+                }
+                else
+                    AnsiConsole.MarkupLine("[red]✗ Error deleting context.[/]");
             }
-            else
-                AnsiConsole.MarkupLine("[red]✗ Error deleting context.[/]");
+            catch (ToodledoApiException ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ API Error ({ex.ErrorCode}):[/] {ex.Message.EscapeMarkup()}");
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message.EscapeMarkup()}");
+            }
         }
 
-        private static async Task ListContexts()
+        private static async Task ListContexts(string filter = "")
         {
             try
             {
@@ -724,7 +755,16 @@ namespace ToodledoConsole
                         return await _contextService.GetContextsAsync();
                     });
 
+                if (!string.IsNullOrWhiteSpace(filter))
+                {
+                    contexts = contexts.Where(c => c.name.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+
                 UIService.DisplayContexts(contexts);
+            }
+            catch (ToodledoApiException ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ API Error ({ex.ErrorCode}):[/] {ex.Message.EscapeMarkup()}");
             }
             catch (Exception ex)
             {
@@ -843,7 +883,7 @@ namespace ToodledoConsole
                 AnsiConsole.MarkupLine("[red]✗ Error deleting folder.[/]");
         }
 
-        private static async Task ListFolders()
+        private static async Task ListFolders(string filter = "")
         {
             try
             {
@@ -854,6 +894,11 @@ namespace ToodledoConsole
                     {
                         return await _folderService.GetFoldersAsync();
                     });
+
+                if (!string.IsNullOrWhiteSpace(filter))
+                {
+                    folders = folders.Where(f => f.name.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
 
                 UIService.DisplayFolders(folders);
             }
@@ -965,7 +1010,7 @@ namespace ToodledoConsole
                 AnsiConsole.MarkupLine("[red]✗ Error deleting location.[/]");
         }
 
-        private static async Task ListLocations()
+        private static async Task ListLocations(string filter = "")
         {
             try
             {
@@ -977,11 +1022,153 @@ namespace ToodledoConsole
                         return await _locationService.GetLocationsAsync();
                     });
 
+                if (!string.IsNullOrWhiteSpace(filter))
+                {
+                    locations = locations.Where(l => l.name.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+
                 UIService.DisplayLocations(locations);
             }
             catch (Exception ex)
             {
                 AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message.EscapeMarkup()}");
+            }
+        }
+        private static async Task ImportReleaseTasks()
+        {
+            try
+            {
+                AnsiConsole.MarkupLine("[cyan]🔍 Step 1: Checking contexts...[/]");
+                var contexts = await _contextService.GetContextsAsync();
+                var releaseContext = contexts.FirstOrDefault(c => c.name.Equals("Release", StringComparison.OrdinalIgnoreCase));
+
+                if (releaseContext == null)
+                {
+                    AnsiConsole.MarkupLine("[yellow]⚠️ 'Release' context not found. Creating it...[/]");
+                    bool created = await _contextService.AddContextAsync("Release");
+                    if (!created)
+                    {
+                        AnsiConsole.MarkupLine("[red]✗ Failed to create 'Release' context via API.[/]");
+                        return;
+                    }
+                    
+                    AnsiConsole.MarkupLine("[green]✓ Context created. Refreshing...[/]");
+                    _taskParserService.ClearCache();
+                    contexts = await _contextService.GetContextsAsync();
+                    releaseContext = contexts.FirstOrDefault(c => c.name.Equals("Release", StringComparison.OrdinalIgnoreCase));
+                }
+
+                if (releaseContext == null)
+                {
+                    AnsiConsole.MarkupLine("[red]✗ Critical Error: 'Release' context still missing after creation.[/]");
+                    return;
+                }
+
+                AnsiConsole.MarkupLine($"[green]✓ Context Verified: [white]{releaseContext.name}[/] (ID: {releaseContext.id})[/]");
+                
+                AnsiConsole.MarkupLine("[cyan]🔍 Step 2: Checking existing tasks in @Release...[/]");
+                var existingTasks = await _taskService.GetTasksAsync($"&context={releaseContext.id}");
+                
+                var tasksToAdd = new[]
+                {
+                    "[CLI] Version Bump: Update Program.cs and .csproj to 2.0.0",
+                    "[UX] Multi-ID Support: Allow done id1 id2 id3 to clear multiple tasks",
+                    "[Feature] Star Toggle: Add dedicated star <id> and unstar <id> commands",
+                    "[Build] Zero Warning Check: Confirm dotnet build is 100% clean",
+                    "[Dashboard] Empty State Audit: Ensure stats handles empty accounts",
+                    "[Dashboard] Top Facts Logic: Verify Oldest Task handles null/edge cases",
+                    "[Docs] Command Table Sync: Audit README.md against actual help output",
+                    "[Security] Auth Protection: Verify .gitignore and security in README",
+                    "[CI] GitHub Action Run: Confirm build.yml passes on MacOS",
+                    "[Repo] Metadata Sweep: Set GitHub topics and description",
+                    "[Dogfood] Final Verification: Mark all tasks complete using the tool"
+                };
+
+                int imported = 0;
+                int skipped = 0;
+
+                foreach (var taskTitle in tasksToAdd)
+                {
+                    if (existingTasks.Any(et => et.title.Equals(taskTitle, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        skipped++;
+                        continue;
+                    }
+
+                    var criteria = new FilterCriteria 
+                    { 
+                        SearchTerm = taskTitle,
+                        ContextId = releaseContext.id,
+                        Priority = 2 
+                    };
+
+                    await AnsiConsole.Status()
+                        .Spinner(Spinner.Known.Dots)
+                        .SpinnerStyle(Style.Parse("cyan"))
+                        .StartAsync($"[cyan]Importing:[/] {taskTitle.EscapeMarkup()}...", async ctx =>
+                        {
+                            await _taskService.AddTaskAsync(criteria);
+                        });
+                    imported++;
+                }
+
+                AnsiConsole.MarkupLine($"[green]✓ Done! {imported} tasks imported, {skipped} skipped (already exists).[/]");
+                AnsiConsole.MarkupLine("[yellow]Tip: Run 'filter @Release' to see your backlog.[/]");
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Import failed:[/] {ex.Message.EscapeMarkup()}");
+            }
+        }
+
+        private static async Task CleanupReleaseTasks()
+        {
+            try
+            {
+                AnsiConsole.MarkupLine("[yellow]🔍 Searching for 'Release' context...[/]");
+                var contexts = await _contextService.GetContextsAsync();
+                var rc = contexts.FirstOrDefault(c => c.name.Equals("Release", StringComparison.OrdinalIgnoreCase));
+                
+                if (rc == null)
+                {
+                    AnsiConsole.MarkupLine("[red]✗ Context 'Release' not found. Nothing to clean.[/]");
+                    return;
+                }
+
+                AnsiConsole.MarkupLine("[cyan]🔍 Fetching all tasks in @Release context...[/]");
+                var tasks = await _taskService.GetTasksAsync($"&context={rc.id}");
+                
+                if (tasks.Count == 0)
+                {
+                    AnsiConsole.MarkupLine("[yellow]No tasks found in @Release context.[/]");
+                    return;
+                }
+
+                AnsiConsole.MarkupLine($"[yellow]⚠️ WARNING: This will delete ALL {tasks.Count} tasks in the '@Release' context.[/]");
+                AnsiConsole.MarkupLine("[white]Are you sure? (y/n)[/]");
+                var key = Console.ReadKey(true);
+                if (key.Key != ConsoleKey.Y)
+                {
+                    AnsiConsole.MarkupLine("[yellow]Cleanup cancelled.[/]");
+                    return;
+                }
+
+                foreach (var task in tasks)
+                {
+                    await AnsiConsole.Status()
+                        .Spinner(Spinner.Known.Dots)
+                        .SpinnerStyle(Style.Parse("red"))
+                        .StartAsync($"[red]Deleting:[/] {task.title.EscapeMarkup()}...", async ctx =>
+                        {
+                            await _taskService.DeleteTaskAsync(task.id);
+                        });
+                }
+
+                AnsiConsole.MarkupLine("[green]✓ Cleanup complete. Context @Release is now empty.[/]");
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Cleanup failed:[/] {ex.Message.EscapeMarkup()}");
             }
         }
     }
