@@ -58,11 +58,9 @@ namespace ToodledoConsole
 
         public async Task<bool> AddContextAsync(string name)
         {
-            var contextObject = new Dictionary<string, object> { { "name", name } };
-            var contextData = JsonSerializer.Serialize(new[] { contextObject }, _jsonOptions);
             var content = new FormUrlEncodedContent(new[] {
                 new KeyValuePair<string, string>("access_token", _authService.AccessToken),
-                new KeyValuePair<string, string>("contexts", contextData)
+                new KeyValuePair<string, string>("name", name)
             });
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/contexts/add.php", content);
             var responseJson = await response.Content.ReadAsStringAsync();
@@ -78,11 +76,10 @@ namespace ToodledoConsole
 
         public async Task<bool> EditContextAsync(long id, string name)
         {
-            var contextObject = new Dictionary<string, object> { { "id", id }, { "name", name } };
-            var contextData = JsonSerializer.Serialize(new[] { contextObject }, _jsonOptions);
             var content = new FormUrlEncodedContent(new[] {
                 new KeyValuePair<string, string>("access_token", _authService.AccessToken),
-                new KeyValuePair<string, string>("contexts", contextData)
+                new KeyValuePair<string, string>("id", id.ToString()),
+                new KeyValuePair<string, string>("name", name)
             });
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/contexts/edit.php", content);
             var responseJson = await response.Content.ReadAsStringAsync();
@@ -98,10 +95,9 @@ namespace ToodledoConsole
 
         public async Task<bool> DeleteContextAsync(long id)
         {
-            var contextData = "[" + id + "]";
             var content = new FormUrlEncodedContent(new[] {
                 new KeyValuePair<string, string>("access_token", _authService.AccessToken),
-                new KeyValuePair<string, string>("contexts", contextData)
+                new KeyValuePair<string, string>("id", id.ToString())
             });
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/contexts/delete.php", content);
             var responseJson = await response.Content.ReadAsStringAsync();

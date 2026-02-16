@@ -780,21 +780,28 @@ namespace ToodledoConsole
                 return;
             }
 
-            bool success = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .SpinnerStyle(Style.Parse("cyan"))
-                .StartAsync("[cyan]Adding folder...[/]", async ctx =>
-                {
-                    return await _folderService.AddFolderAsync(name);
-                });
-
-            if (success)
+            try
             {
-                _taskParserService.ClearCache();
-                AnsiConsole.MarkupLine($"[green]✓ Folder Added:[/] {name.EscapeMarkup()}");
+                bool success = await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("cyan"))
+                    .StartAsync("[cyan]Adding folder...[/]", async ctx =>
+                    {
+                        return await _folderService.AddFolderAsync(name);
+                    });
+
+                if (success)
+                {
+                    _taskParserService.ClearCache();
+                    AnsiConsole.MarkupLine($"[green]✓ Folder Added:[/] {name.EscapeMarkup()}");
+                }
+                else
+                    AnsiConsole.MarkupLine("[red]✗ Error adding folder.[/]");
             }
-            else
-                AnsiConsole.MarkupLine("[red]✗ Error adding folder.[/]");
+            catch (ToodledoApiException ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ API Error ({ex.ErrorCode}):[/] {ex.Message.EscapeMarkup()}");
+            }
         }
 
         private static async Task EditFolder(string input)
@@ -815,30 +822,41 @@ namespace ToodledoConsole
             string identifier = parts[0];
             string newName = parts[1];
 
-            var folders = await _folderService.GetFoldersAsync();
-            var folder = folders.FirstOrDefault(f => f.id.ToString() == identifier || f.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
-
-            if (folder == null)
+            try
             {
-                AnsiConsole.MarkupLine($"[red]✗ Folder not found: {identifier}[/]");
-                return;
-            }
+                var folders = await _folderService.GetFoldersAsync();
+                var folder = folders.FirstOrDefault(f => f.id.ToString() == identifier || f.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
 
-            bool success = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .SpinnerStyle(Style.Parse("cyan"))
-                .StartAsync("[cyan]Updating folder...[/]", async ctx =>
+                if (folder == null)
                 {
-                    return await _folderService.EditFolderAsync(folder.id, newName);
-                });
+                    AnsiConsole.MarkupLine($"[red]✗ Folder not found: {identifier}[/]");
+                    return;
+                }
 
-            if (success)
-            {
-                _taskParserService.ClearCache();
-                AnsiConsole.MarkupLine($"[green]✓ Folder Updated:[/] {newName.EscapeMarkup()}");
+                bool success = await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("cyan"))
+                    .StartAsync("[cyan]Updating folder...[/]", async ctx =>
+                    {
+                        return await _folderService.EditFolderAsync(folder.id, newName);
+                    });
+
+                if (success)
+                {
+                    _taskParserService.ClearCache();
+                    AnsiConsole.MarkupLine($"[green]✓ Folder Updated:[/] {newName.EscapeMarkup()}");
+                }
+                else
+                    AnsiConsole.MarkupLine("[red]✗ Error updating folder.[/]");
             }
-            else
-                AnsiConsole.MarkupLine("[red]✗ Error updating folder.[/]");
+            catch (ToodledoApiException ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ API Error ({ex.ErrorCode}):[/] {ex.Message.EscapeMarkup()}");
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message.EscapeMarkup()}");
+            }
         }
 
         private static async Task DeleteFolder(string identifier)
@@ -849,38 +867,49 @@ namespace ToodledoConsole
                 return;
             }
 
-            var folders = await _folderService.GetFoldersAsync();
-            var folder = folders.FirstOrDefault(f => f.id.ToString() == identifier || f.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
-
-            if (folder == null)
+            try
             {
-                AnsiConsole.MarkupLine($"[red]✗ Folder not found: {identifier}[/]");
-                return;
-            }
+                var folders = await _folderService.GetFoldersAsync();
+                var folder = folders.FirstOrDefault(f => f.id.ToString() == identifier || f.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
 
-            AnsiConsole.MarkupLine($"[yellow]Are you sure you want to delete folder:[/] [white]{folder.name}[/]? [dim](y/n)[/]");
-            var key = Console.ReadKey(true);
-            if (key.Key != ConsoleKey.Y)
-            {
-                AnsiConsole.MarkupLine("[yellow]Delete cancelled.[/]");
-                return;
-            }
-
-            bool success = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .SpinnerStyle(Style.Parse("red"))
-                .StartAsync("[red]Deleting folder...[/]", async ctx =>
+                if (folder == null)
                 {
-                    return await _folderService.DeleteFolderAsync(folder.id);
-                });
+                    AnsiConsole.MarkupLine($"[red]✗ Folder not found: {identifier}[/]");
+                    return;
+                }
 
-            if (success)
-            {
-                _taskParserService.ClearCache();
-                AnsiConsole.MarkupLine("[green]✓ Folder Deleted![/]");
+                AnsiConsole.MarkupLine($"[yellow]Are you sure you want to delete folder:[/] [white]{folder.name}[/]? [dim](y/n)[/]");
+                var key = Console.ReadKey(true);
+                if (key.Key != ConsoleKey.Y)
+                {
+                    AnsiConsole.MarkupLine("[yellow]Delete cancelled.[/]");
+                    return;
+                }
+
+                bool success = await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("red"))
+                    .StartAsync("[red]Deleting folder...[/]", async ctx =>
+                    {
+                        return await _folderService.DeleteFolderAsync(folder.id);
+                    });
+
+                if (success)
+                {
+                    _taskParserService.ClearCache();
+                    AnsiConsole.MarkupLine("[green]✓ Folder Deleted![/]");
+                }
+                else
+                    AnsiConsole.MarkupLine("[red]✗ Error deleting folder.[/]");
             }
-            else
-                AnsiConsole.MarkupLine("[red]✗ Error deleting folder.[/]");
+            catch (ToodledoApiException ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ API Error ({ex.ErrorCode}):[/] {ex.Message.EscapeMarkup()}");
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message.EscapeMarkup()}");
+            }
         }
 
         private static async Task ListFolders(string filter = "")
@@ -902,6 +931,10 @@ namespace ToodledoConsole
 
                 UIService.DisplayFolders(folders);
             }
+            catch (ToodledoApiException ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ API Error ({ex.ErrorCode}):[/] {ex.Message.EscapeMarkup()}");
+            }
             catch (Exception ex)
             {
                 AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message.EscapeMarkup()}");
@@ -916,18 +949,25 @@ namespace ToodledoConsole
                 return;
             }
 
-            bool success = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .SpinnerStyle(Style.Parse("cyan"))
-                .StartAsync("[cyan]Adding location...[/]", async ctx =>
-                {
-                    return await _locationService.AddLocationAsync(name);
-                });
+            try
+            {
+                bool success = await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("cyan"))
+                    .StartAsync("[cyan]Adding location...[/]", async ctx =>
+                    {
+                        return await _locationService.AddLocationAsync(name);
+                    });
 
-            if (success)
-                AnsiConsole.MarkupLine($"[green]✓ Location Added:[/] {name.EscapeMarkup()}");
-            else
-                AnsiConsole.MarkupLine("[red]✗ Error adding location.[/]");
+                if (success)
+                    AnsiConsole.MarkupLine($"[green]✓ Location Added:[/] {name.EscapeMarkup()}");
+                else
+                    AnsiConsole.MarkupLine("[red]✗ Error adding location.[/]");
+            }
+            catch (ToodledoApiException ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ API Error ({ex.ErrorCode}):[/] {ex.Message.EscapeMarkup()}");
+            }
         }
 
         private static async Task EditLocation(string input)
@@ -948,27 +988,38 @@ namespace ToodledoConsole
             string identifier = parts[0];
             string newName = parts[1];
 
-            var locations = await _locationService.GetLocationsAsync();
-            var loc = locations.FirstOrDefault(l => l.id.ToString() == identifier || l.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
-
-            if (loc == null)
+            try
             {
-                AnsiConsole.MarkupLine($"[red]✗ Location not found: {identifier}[/]");
-                return;
-            }
+                var locations = await _locationService.GetLocationsAsync();
+                var loc = locations.FirstOrDefault(l => l.id.ToString() == identifier || l.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
 
-            bool success = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .SpinnerStyle(Style.Parse("cyan"))
-                .StartAsync("[cyan]Updating location...[/]", async ctx =>
+                if (loc == null)
                 {
-                    return await _locationService.EditLocationAsync(loc.id, newName);
-                });
+                    AnsiConsole.MarkupLine($"[red]✗ Location not found: {identifier}[/]");
+                    return;
+                }
 
-            if (success)
-                AnsiConsole.MarkupLine($"[green]✓ Location Updated:[/] {newName.EscapeMarkup()}");
-            else
-                AnsiConsole.MarkupLine("[red]✗ Error updating location.[/]");
+                bool success = await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("cyan"))
+                    .StartAsync("[cyan]Updating location...[/]", async ctx =>
+                    {
+                        return await _locationService.EditLocationAsync(loc.id, newName);
+                    });
+
+                if (success)
+                    AnsiConsole.MarkupLine($"[green]✓ Location Updated:[/] {newName.EscapeMarkup()}");
+                else
+                    AnsiConsole.MarkupLine("[red]✗ Error updating location.[/]");
+            }
+            catch (ToodledoApiException ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ API Error ({ex.ErrorCode}):[/] {ex.Message.EscapeMarkup()}");
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message.EscapeMarkup()}");
+            }
         }
 
         private static async Task DeleteLocation(string identifier)
@@ -979,35 +1030,46 @@ namespace ToodledoConsole
                 return;
             }
 
-            var locations = await _locationService.GetLocationsAsync();
-            var loc = locations.FirstOrDefault(l => l.id.ToString() == identifier || l.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
-
-            if (loc == null)
+            try
             {
-                AnsiConsole.MarkupLine($"[red]✗ Location not found: {identifier}[/]");
-                return;
-            }
+                var locations = await _locationService.GetLocationsAsync();
+                var loc = locations.FirstOrDefault(l => l.id.ToString() == identifier || l.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
 
-            AnsiConsole.MarkupLine($"[yellow]Are you sure you want to delete location:[/] [white]{loc.name}[/]? [dim](y/n)[/]");
-            var key = Console.ReadKey(true);
-            if (key.Key != ConsoleKey.Y)
-            {
-                AnsiConsole.MarkupLine("[yellow]Delete cancelled.[/]");
-                return;
-            }
-
-            bool success = await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .SpinnerStyle(Style.Parse("red"))
-                .StartAsync("[red]Deleting location...[/]", async ctx =>
+                if (loc == null)
                 {
-                    return await _locationService.DeleteLocationAsync(loc.id);
-                });
+                    AnsiConsole.MarkupLine($"[red]✗ Location not found: {identifier}[/]");
+                    return;
+                }
 
-            if (success)
-                AnsiConsole.MarkupLine("[green]✓ Location Deleted![/]");
-            else
-                AnsiConsole.MarkupLine("[red]✗ Error deleting location.[/]");
+                AnsiConsole.MarkupLine($"[yellow]Are you sure you want to delete location:[/] [white]{loc.name}[/]? [dim](y/n)[/]");
+                var key = Console.ReadKey(true);
+                if (key.Key != ConsoleKey.Y)
+                {
+                    AnsiConsole.MarkupLine("[yellow]Delete cancelled.[/]");
+                    return;
+                }
+
+                bool success = await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("red"))
+                    .StartAsync("[red]Deleting location...[/]", async ctx =>
+                    {
+                        return await _locationService.DeleteLocationAsync(loc.id);
+                    });
+
+                if (success)
+                    AnsiConsole.MarkupLine("[green]✓ Location Deleted![/]");
+                else
+                    AnsiConsole.MarkupLine("[red]✗ Error deleting location.[/]");
+            }
+            catch (ToodledoApiException ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ API Error ({ex.ErrorCode}):[/] {ex.Message.EscapeMarkup()}");
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message.EscapeMarkup()}");
+            }
         }
 
         private static async Task ListLocations(string filter = "")
@@ -1028,6 +1090,10 @@ namespace ToodledoConsole
                 }
 
                 UIService.DisplayLocations(locations);
+            }
+            catch (ToodledoApiException ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ API Error ({ex.ErrorCode}):[/] {ex.Message.EscapeMarkup()}");
             }
             catch (Exception ex)
             {

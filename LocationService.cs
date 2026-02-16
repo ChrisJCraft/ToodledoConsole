@@ -52,11 +52,9 @@ namespace ToodledoConsole
 
         public async Task<bool> AddLocationAsync(string name)
         {
-            var locationObject = new Dictionary<string, object> { { "name", name } };
-            var locationData = JsonSerializer.Serialize(new[] { locationObject }, _jsonOptions);
             var content = new FormUrlEncodedContent(new[] {
                 new KeyValuePair<string, string>("access_token", _authService.AccessToken),
-                new KeyValuePair<string, string>("locations", locationData)
+                new KeyValuePair<string, string>("name", name)
             });
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/locations/add.php", content);
             var responseJson = await response.Content.ReadAsStringAsync();
@@ -72,11 +70,10 @@ namespace ToodledoConsole
 
         public async Task<bool> EditLocationAsync(long id, string name)
         {
-            var locationObject = new Dictionary<string, object> { { "id", id }, { "name", name } };
-            var locationData = JsonSerializer.Serialize(new[] { locationObject }, _jsonOptions);
             var content = new FormUrlEncodedContent(new[] {
                 new KeyValuePair<string, string>("access_token", _authService.AccessToken),
-                new KeyValuePair<string, string>("locations", locationData)
+                new KeyValuePair<string, string>("id", id.ToString()),
+                new KeyValuePair<string, string>("name", name)
             });
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/locations/edit.php", content);
             var responseJson = await response.Content.ReadAsStringAsync();
@@ -92,10 +89,9 @@ namespace ToodledoConsole
 
         public async Task<bool> DeleteLocationAsync(long id)
         {
-            var locationData = "[" + id + "]";
             var content = new FormUrlEncodedContent(new[] {
                 new KeyValuePair<string, string>("access_token", _authService.AccessToken),
-                new KeyValuePair<string, string>("locations", locationData)
+                new KeyValuePair<string, string>("id", id.ToString())
             });
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/locations/delete.php", content);
             var responseJson = await response.Content.ReadAsStringAsync();

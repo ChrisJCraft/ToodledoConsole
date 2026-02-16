@@ -49,11 +49,9 @@ namespace ToodledoConsole
 
         public async Task<bool> AddFolderAsync(string name)
         {
-            var folderObject = new Dictionary<string, object> { { "name", name } };
-            var folderData = JsonSerializer.Serialize(new[] { folderObject }, _jsonOptions);
             var content = new FormUrlEncodedContent(new[] {
                 new KeyValuePair<string, string>("access_token", _authService.AccessToken),
-                new KeyValuePair<string, string>("folders", folderData)
+                new KeyValuePair<string, string>("name", name)
             });
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/folders/add.php", content);
             var responseJson = await response.Content.ReadAsStringAsync();
@@ -69,11 +67,10 @@ namespace ToodledoConsole
 
         public async Task<bool> EditFolderAsync(long id, string name)
         {
-            var folderObject = new Dictionary<string, object> { { "id", id }, { "name", name } };
-            var folderData = JsonSerializer.Serialize(new[] { folderObject }, _jsonOptions);
             var content = new FormUrlEncodedContent(new[] {
                 new KeyValuePair<string, string>("access_token", _authService.AccessToken),
-                new KeyValuePair<string, string>("folders", folderData)
+                new KeyValuePair<string, string>("id", id.ToString()),
+                new KeyValuePair<string, string>("name", name)
             });
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/folders/edit.php", content);
             var responseJson = await response.Content.ReadAsStringAsync();
@@ -89,10 +86,9 @@ namespace ToodledoConsole
 
         public async Task<bool> DeleteFolderAsync(long id)
         {
-            var folderData = "[" + id + "]";
             var content = new FormUrlEncodedContent(new[] {
                 new KeyValuePair<string, string>("access_token", _authService.AccessToken),
-                new KeyValuePair<string, string>("folders", folderData)
+                new KeyValuePair<string, string>("id", id.ToString())
             });
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/folders/delete.php", content);
             var responseJson = await response.Content.ReadAsStringAsync();
