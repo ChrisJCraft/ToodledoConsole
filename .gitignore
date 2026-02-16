@@ -25,3 +25,6 @@ random_state.json
 # --- OS Specific Files ---
 .DS_Store
 thumbs.db
+
+# --- Release Files ---
+RELEASE.md
