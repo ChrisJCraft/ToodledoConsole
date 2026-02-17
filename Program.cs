@@ -56,7 +56,7 @@ namespace ToodledoConsole
 
                 if (!_authService.LoadSecrets())
                 {
-                    AnsiConsole.MarkupLine("[yellow]Setup: Toodledo API credentials not found.[/]");
+                    UIService.DisplaySetupWizard();
                     var clientId = AnsiConsole.Ask<string>("Enter your [cyan]Client ID[/]:");
                     var clientSecret = AnsiConsole.Ask<string>("Enter your [cyan]Client Secret[/]:");
 
@@ -148,6 +148,7 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("add-location ")) await AddLocation(cleanInput.Substring(13).Trim());
                 else if (lowerInput.StartsWith("edit-location ")) await EditLocation(cleanInput.Substring(14).Trim());
                 else if (lowerInput.StartsWith("delete-location ")) await DeleteLocation(cleanInput.Substring(16).Trim());
+                else if (lowerInput == "setup") await RunSetup();
                 else if (lowerInput.StartsWith("delete ")) await DeleteTask(cleanInput.Substring(7).Trim());
                 else AnsiConsole.MarkupLine("[red]Unknown command. Type 'help' for available commands.[/]");
             }
@@ -1067,6 +1068,41 @@ namespace ToodledoConsole
             catch (Exception ex)
             {
                 AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message.EscapeMarkup()}");
+            }
+        }
+
+        private static async Task RunSetup()
+        {
+            UIService.DisplaySetupWizard();
+            var clientId = AnsiConsole.Ask<string>("Enter your [cyan]Client ID[/]:");
+            var clientSecret = AnsiConsole.Ask<string>("Enter your [cyan]Client Secret[/]:");
+
+            if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
+            {
+                AnsiConsole.MarkupLine("[yellow]Setup cancelled. No changes made.[/]");
+                return;
+            }
+
+            _authService.SetSecrets(clientId, clientSecret);
+            _authService.SaveSecrets();
+            AnsiConsole.MarkupLine("[green]✓ Credentials saved to auth.txt[/]");
+            AnsiConsole.MarkupLine("[yellow]Note: You may need to restart the app for changes to take full effect if tokens are invalid.[/]");
+
+            // Check if user wants to authorize now
+            if (AnsiConsole.Confirm("Would you like to authorize in the browser now?"))
+            {
+                AnsiConsole.MarkupLine("[yellow]1. A browser window should open automatically.[/]");
+                AnsiConsole.MarkupLine("[yellow]2. If not, visit http://localhost:5000/ to authorize.[/]");
+
+                await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("yellow"))
+                    .StartAsync("[yellow]Waiting for authorization...[/]", async ctx =>
+                    {
+                        await _authService.AuthorizeAsync();
+                    });
+                
+                AnsiConsole.MarkupLine("[green]✓ Success! Connection Verified.[/]");
             }
         }
 

@@ -421,6 +421,31 @@ namespace ToodledoConsole
             AnsiConsole.WriteLine();
         }
 
+        public static void DisplaySetupWizard()
+        {
+            var grid = new Grid();
+            grid.AddColumn();
+            grid.AddRow(new Markup("[bold yellow]Step 1:[/] Create a Toodledo account if you don't have one."));
+            grid.AddRow(new Markup("[bold yellow]Step 2:[/] Visit the [link=https://www.toodledo.com/api/register.php]Toodledo API Registration[/] page."));
+            grid.AddRow(new Markup("[bold yellow]Step 3:[/] Register a new application to get your [cyan]Client ID[/] and [cyan]Client Secret[/]."));
+            grid.AddRow(new Markup("[dim]       (Redirect URI can be http://localhost:5000/)[/]"));
+            grid.AddRow(new Text(""));
+            grid.AddRow(new Markup("[bold green]Enter your credentials below to get started![/]"));
+
+            var panel = new Panel(grid)
+            {
+                Header = new PanelHeader("[cyan]Toodledo API Setup Wizard[/]"),
+                Border = BoxBorder.Rounded,
+                BorderStyle = Style.Parse("cyan"),
+                Padding = new Padding(2, 1),
+                Width = 100
+            };
+
+            AnsiConsole.WriteLine();
+            AnsiConsole.Write(panel);
+            AnsiConsole.WriteLine();
+        }
+
         public static string GetPriorityName(int priority)
         {
             return priority switch
