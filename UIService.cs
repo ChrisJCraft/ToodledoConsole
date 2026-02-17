@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace ToodledoConsole
 {
@@ -249,14 +250,23 @@ namespace ToodledoConsole
             // Progress Panel
             var progressChart = new BreakdownChart().Width(96);
             progressChart.AddItem("Completed", completedCount, Color.Green);
-            progressChart.AddItem("Remaining", tasks.Count, Color.Yellow);
+            if (tasks.Count > 0)
+            {
+                progressChart.AddItem("Remaining", tasks.Count, Color.Yellow);
+            }
 
-            var progressContent = new Rows(
+            var progressElements = new List<IRenderable>
+            {
                 new Markup($"[dim]Completed Tasks:[/] [green]{completedCount}[/] [dim]| Remaining Tasks:[/] [yellow]{tasks.Count}[/] [dim]| Total:[/] [white]{totalTasks}[/] [dim]({progressPercent:F1}%)[/]"),
-                new Text(""), // Spacer
-                progressChart
-            );
-            AnsiConsole.Write(new Panel(progressContent) { Header = new PanelHeader("[cyan]Task Progress[/]"), Border = BoxBorder.Rounded, Width = 100 });
+                new Text("") // Spacer
+            };
+
+            if (totalTasks > 0)
+            {
+                progressElements.Add(progressChart);
+            }
+
+            AnsiConsole.Write(new Panel(new Rows(progressElements)) { Header = new PanelHeader("[cyan]Task Progress[/]"), Border = BoxBorder.Rounded, Width = 100 });
             AnsiConsole.WriteLine();
 
             var columns = new Columns(
@@ -266,14 +276,22 @@ namespace ToodledoConsole
             AnsiConsole.Write(columns);
             AnsiConsole.WriteLine();
 
-            AnsiConsole.Write(new Panel(priorityChart) { Header = new PanelHeader("[yellow]Priority Distribution[/]"), Border = BoxBorder.Rounded, Width = 100 });
-            AnsiConsole.WriteLine();
+            if (tasks.Count > 0)
+            {
+                AnsiConsole.Write(new Panel(priorityChart) { Header = new PanelHeader("[yellow]Priority Distribution[/]"), Border = BoxBorder.Rounded, Width = 100 });
+                AnsiConsole.WriteLine();
 
-            AnsiConsole.Write(folderChart);
-            AnsiConsole.WriteLine();
+                AnsiConsole.Write(folderChart);
+                AnsiConsole.WriteLine();
 
-            AnsiConsole.Write(contextChart);
-            AnsiConsole.WriteLine();
+                AnsiConsole.Write(contextChart);
+                AnsiConsole.WriteLine();
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[dim]No active tasks to display charts for.[/]");
+                AnsiConsole.WriteLine();
+            }
         }
 
         private static bool IsSameDay(long unixTime, DateTime date)
