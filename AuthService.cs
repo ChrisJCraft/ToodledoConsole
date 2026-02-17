@@ -105,6 +105,8 @@ namespace ToodledoConsole
             catch { }
 
             string? code = null;
+            string? expectedState = null;
+
             while (string.IsNullOrEmpty(code))
             {
                 var context = await listener.GetContextAsync();
@@ -114,8 +116,23 @@ namespace ToodledoConsole
                 if (request.Url?.AbsolutePath == "/")
                 {
                     code = request.QueryString["code"];
+                    string? receivedState = request.QueryString["state"];
+
                     if (!string.IsNullOrEmpty(code))
                     {
+                        // Verify state
+                        if (receivedState != expectedState)
+                        {
+                            byte[] errorBuffer = Encoding.UTF8.GetBytes("<html><body><h1>State verification failed.</h1><p>Possibility of CSRF attack. Please try again.</p></body></html>");
+                            response.StatusCode = 403;
+                            response.ContentType = "text/html; charset=utf-8";
+                            response.ContentLength64 = errorBuffer.Length;
+                            response.OutputStream.Write(errorBuffer, 0, errorBuffer.Length);
+                            response.OutputStream.Close();
+                            code = null; // Reset code to keep loop going or handle exit
+                            continue;
+                        }
+
                         // User has returned with code
                         string successHtml = GetSuccessHtml();
                         byte[] buffer = Encoding.UTF8.GetBytes(successHtml);
@@ -129,8 +146,8 @@ namespace ToodledoConsole
                     {
                         // Redirect to Toodledo Auth
                         string scope = "basic%20tasks%20notes%20lists%20write";
-                        string state = Guid.NewGuid().ToString("N"); // Simple state
-                        string authUrl = $"https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id={_clientId}&state={state}&scope={scope}";
+                        expectedState = Guid.NewGuid().ToString("N");
+                        string authUrl = $"https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id={_clientId}&state={expectedState}&scope={scope}";
 
                         response.Redirect(authUrl);
                         response.OutputStream.Close();
