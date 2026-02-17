@@ -232,7 +232,7 @@ Contributions are welcome! Feel free to:
 
 ## 👤 Author
 
-**Chris Craft**
+**Christopher Jay Craft**
 
 ---
 

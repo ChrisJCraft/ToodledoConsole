@@ -7,11 +7,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Version>0.1.0</Version>
-    <Authors>Chris Craft</Authors>
-    <Company>Chris Craft</Company>
+    <Authors>Christopher Jay Craft</Authors>
+    <Company>Christopher Jay Craft</Company>
     <Product>Toodledo Console</Product>
     <Description>A lightweight, modern C# CLI tool for managing Toodledo tasks from the terminal</Description>
-    <Copyright>Copyright © 2026 Chris Craft</Copyright>
+    <Copyright>Copyright © 2026 Christopher Jay Craft</Copyright>
     <RepositoryUrl>https://github.com/ChrisJCraft/ToodledoConsole</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
