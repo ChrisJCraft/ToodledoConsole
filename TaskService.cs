@@ -168,9 +168,19 @@ namespace ToodledoConsole
             return response.IsSuccessStatusCode;
         }
 
-        public async Task<bool> CompleteTaskAsync(string id)
+        public async Task<bool> CompleteTasksAsync(IEnumerable<string> ids)
         {
-            var taskData = "[{\"id\":\"" + id + "\",\"completed\":1}]";
+            var taskList = new List<Dictionary<string, object>>();
+            foreach (var id in ids)
+            {
+                taskList.Add(new Dictionary<string, object>
+                {
+                    { "id", id },
+                    { "completed", 1 }
+                });
+            }
+
+            var taskData = JsonSerializer.Serialize(taskList, _jsonOptions);
             var content = new FormUrlEncodedContent(new[] {
                 new KeyValuePair<string, string>("access_token", _authService.AccessToken),
                 new KeyValuePair<string, string>("tasks", taskData)
@@ -185,6 +195,11 @@ namespace ToodledoConsole
             }
 
             return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> CompleteTaskAsync(string id)
+        {
+            return await CompleteTasksAsync(new[] { id });
         }
 
         public async Task<bool> DeleteTaskAsync(string id)

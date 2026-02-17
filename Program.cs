@@ -131,7 +131,7 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("random ")) await ShowRandom(cleanInput.Substring(7).Trim());
                 else if (lowerInput.StartsWith("filter ")) await FilterTasks(cleanInput.Substring(7).Trim());
                 else if (lowerInput.StartsWith("find ")) await SearchTasks(cleanInput.Substring(5).Trim());
-                else if (lowerInput.StartsWith("done ")) await CompleteTask(cleanInput.Substring(5).Trim());
+                else if (lowerInput.StartsWith("done ")) await CompleteTasks(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("add ")) await AddTask(cleanInput.Substring(4).Trim());
                 else if (lowerInput.StartsWith("edit ")) await EditTask(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("view ")) await ViewTask(cleanInput.Substring(5).Trim());
@@ -389,27 +389,35 @@ namespace ToodledoConsole
             catch { /* Silently fail */ }
         }
 
-        private static async Task CompleteTask(string id)
+        private static async Task CompleteTasks(string input)
         {
+            if (string.IsNullOrWhiteSpace(input)) return;
+
+            var ids = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (ids.Length == 0) return;
+
             bool success = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots)
                 .SpinnerStyle(Style.Parse("green"))
-                .StartAsync($"[green]Completing task...[/]", async ctx =>
+                .StartAsync($"[green]Completing {(ids.Length > 1 ? ids.Length.ToString() + " tasks" : "task")}...[/]", async ctx =>
                 {
-                    return await _taskService.CompleteTaskAsync(id);
+                    return await _taskService.CompleteTasksAsync(ids);
                 });
 
             if (success)
             {
-                AnsiConsole.MarkupLine("[green]✓ Task Completed![/]");
-                _cachedTasks.RemoveAll(t => t.id == id);
-                _seenTaskIds.Remove(id);
+                AnsiConsole.MarkupLine($"[green]✓ {(ids.Length > 1 ? ids.Length.ToString() + " Tasks" : "Task")} Completed![/]");
+                foreach (var id in ids)
+                {
+                    _cachedTasks.RemoveAll(t => t.id == id);
+                    _seenTaskIds.Remove(id);
+                }
                 SaveRandomState();
                 AnsiConsole.MarkupLine($"[cyan]{_cachedTasks.Count} Tasks Remaining.[/]");
             }
             else
             {
-                AnsiConsole.MarkupLine("[red]✗ Error completing task.[/]");
+                AnsiConsole.MarkupLine("[red]✗ Error completing one or more tasks.[/]");
             }
         }
 

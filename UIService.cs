@@ -407,7 +407,7 @@ namespace ToodledoConsole
             table.AddRow("[cyan]view[/] [white]<id>[/]", "[dim]View full task details (including notes)[/]");
             table.AddRow("[cyan]tag[/] [white]<id> <tags>[/]", "[dim]Quickly update tags for a task[/]");
             table.AddRow("[cyan]note[/] [white]<id> <text>[/]", "[dim]Quickly update note for a task[/]");
-            table.AddRow("[cyan]done[/] [white]<id>[/]", "[dim]Mark a task as completed[/]");
+            table.AddRow("[cyan]done[/] [white]<id1> <id2>...[/]", "[dim]Mark one or more tasks as completed[/]");
             table.AddRow("[cyan]delete[/] [white]<id>[/]", "[dim]Permanently remove a task[/]");
             table.AddRow("[cyan]add-context[/] [white]<name>[/]", "[dim]Create a new context[/]");
             table.AddRow("[cyan]edit-context[/] [white]<id|name> <new>[/]", "[dim]Rename a context[/]");
