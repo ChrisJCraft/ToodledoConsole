@@ -38,7 +38,7 @@ namespace ToodledoConsole
             rule.Style = Style.Parse("cyan");
             AnsiConsole.Write(rule);
             
-            var versionText = new Markup("[dim]v1.5.1[/]");
+            var versionText = new Markup("[dim]v0.1.0[/]");
             AnsiConsole.Write(versionText);
             AnsiConsole.WriteLine();
             AnsiConsole.WriteLine();

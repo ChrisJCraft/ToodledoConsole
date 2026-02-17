@@ -6,7 +6,7 @@
     <RootNamespace>Toodledo_Console</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.5.1</Version>
+    <Version>0.1.0</Version>
     <Authors>Chris Craft</Authors>
     <Company>Chris Craft</Company>
     <Product>Toodledo Console</Product>

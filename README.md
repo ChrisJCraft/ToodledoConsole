@@ -1,6 +1,7 @@
 # Toodledo Console
 
 ![.NET Version](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
+![Version](https://img.shields.io/badge/version-0.1.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 
@@ -130,7 +131,7 @@ Use these shorthands with the `add` and `edit` commands for rapid task entry:
 | `f:[name]` | Folder Name | `add Script f:Work` |
 | `@[name]` | Context Name | `add Bread @Store` |
 | `!:[shortcut]`| Due Date (today, tomorrow, next week) | `add Taxes !:today` |
-| `#[tag]` | Add a tag (can be used multiple times) | `add Release #v1 #beta` |
+| `#[tag]` | Add a tag (can be used multiple times) | `add Release #v0.1.0 #beta` |
 | `n:"[text]"` | Add a note (best in quotes) | `add Jira n:"Fix bug"` |
 | `*` | Star the task | `add Urgent *` |
 
