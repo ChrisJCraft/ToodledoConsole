@@ -96,7 +96,7 @@ namespace ToodledoConsole
             var parts = new List<string> { task.title };
 
             if (task.priority != 0) parts.Add($"p:{task.priority}");
-            
+
             if (task.folder != 0)
             {
                 var folder = folders.FirstOrDefault(f => f.id == task.folder);
@@ -110,7 +110,7 @@ namespace ToodledoConsole
             }
 
             if (task.star != 0) parts.Add($"*:{task.star}");
-            
+
             if (task.status != 0) parts.Add($"s:{task.status}");
 
             if (!string.IsNullOrEmpty(task.tag))

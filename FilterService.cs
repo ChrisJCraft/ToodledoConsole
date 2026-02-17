@@ -66,7 +66,7 @@ namespace ToodledoConsole
             {
                 var now = DateTime.UtcNow.Date;
                 long todayUnix = new DateTimeOffset(now).ToUnixTimeSeconds();
-                
+
                 switch (criteria.DueDateShortcut)
                 {
                     case "today":
@@ -106,7 +106,7 @@ namespace ToodledoConsole
             if (criteria.Starred.HasValue) queryParts.Add($"star={criteria.Starred.Value}");
             // Status is tricky in API if not provided as a filter, but we can try to pass it if we know the field
             // Toodledo 'get' doesn't have a 'status' filter directly usually, but let's check
-            
+
             return queryParts.Any() ? "&" + string.Join("&", queryParts) : "";
         }
     }

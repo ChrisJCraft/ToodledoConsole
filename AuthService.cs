@@ -52,24 +52,24 @@ namespace ToodledoConsole
 
         public async Task<bool> InitializeAsync()
         {
-             if (File.Exists(TokenFile))
-             {
-                 string content = File.ReadAllText(TokenFile);
-                 if (!string.IsNullOrWhiteSpace(content) && content.Trim().StartsWith("{"))
-                 {
-                     _tokens = JsonSerializer.Deserialize<TokenStorage>(content, _jsonOptions) ?? new TokenStorage();
-                     Console.Write("Verifying session... ");
-                     bool authenticated = await CheckConnectionAsync();
+            if (File.Exists(TokenFile))
+            {
+                string content = File.ReadAllText(TokenFile);
+                if (!string.IsNullOrWhiteSpace(content) && content.Trim().StartsWith("{"))
+                {
+                    _tokens = JsonSerializer.Deserialize<TokenStorage>(content, _jsonOptions) ?? new TokenStorage();
+                    Console.Write("Verifying session... ");
+                    bool authenticated = await CheckConnectionAsync();
 
-                     if (!authenticated && !string.IsNullOrEmpty(_tokens.RefreshToken))
-                     {
-                         Console.WriteLine("\nAccess expired. Attempting refresh...");
-                         authenticated = await RefreshTokenAsync();
-                     }
-                     return authenticated;
-                 }
-             }
-             return false;
+                    if (!authenticated && !string.IsNullOrEmpty(_tokens.RefreshToken))
+                    {
+                        Console.WriteLine("\nAccess expired. Attempting refresh...");
+                        authenticated = await RefreshTokenAsync();
+                    }
+                    return authenticated;
+                }
+            }
+            return false;
         }
 
         public async Task<bool> CheckConnectionAsync()
@@ -94,13 +94,15 @@ namespace ToodledoConsole
             using var listener = new HttpListener();
             listener.Prefixes.Add(RedirectUri);
             listener.Start();
-            
+
             Console.WriteLine("Authorize in browser at localhost:5000...");
-            
+
             // Open the browser automatically
-            try { 
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = RedirectUri, UseShellExecute = true }); 
-            } catch { }
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = RedirectUri, UseShellExecute = true });
+            }
+            catch { }
 
             string? code = null;
             while (string.IsNullOrEmpty(code))
@@ -129,43 +131,43 @@ namespace ToodledoConsole
                         string scope = "basic%20tasks%20notes%20lists%20write";
                         string state = Guid.NewGuid().ToString("N"); // Simple state
                         string authUrl = $"https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id={_clientId}&state={state}&scope={scope}";
-                        
+
                         response.Redirect(authUrl);
                         response.OutputStream.Close();
                     }
                 }
                 else
                 {
-                   // Ignore other requests (favicon, etc)
-                   response.StatusCode = 404;
-                   response.Close();
+                    // Ignore other requests (favicon, etc)
+                    response.StatusCode = 404;
+                    response.Close();
                 }
             }
             listener.Stop();
 
-            var values = new Dictionary<string, string> { 
-                { "grant_type", "authorization_code" }, 
-                { "code", code }, 
-                { "redirect_uri", RedirectUri }, 
-                { "client_id", _clientId }, 
-                { "client_secret", _clientSecret } 
+            var values = new Dictionary<string, string> {
+                { "grant_type", "authorization_code" },
+                { "code", code },
+                { "redirect_uri", RedirectUri },
+                { "client_id", _clientId },
+                { "client_secret", _clientSecret }
             };
-            
+
             var apiResponse = await _httpClient.PostAsync("https://api.toodledo.com/3/account/token.php", new FormUrlEncodedContent(values));
             if (apiResponse.IsSuccessStatusCode)
             {
-                 var json = await apiResponse.Content.ReadAsStringAsync();
-                 var data = JsonSerializer.Deserialize<TokenResponse>(json, _jsonOptions);
-                 if (data != null)
-                 {
-                     _tokens.AccessToken = data.access_token; 
-                     _tokens.RefreshToken = data.refresh_token; 
-                     SaveTokens();
-                 }
+                var json = await apiResponse.Content.ReadAsStringAsync();
+                var data = JsonSerializer.Deserialize<TokenResponse>(json, _jsonOptions);
+                if (data != null)
+                {
+                    _tokens.AccessToken = data.access_token;
+                    _tokens.RefreshToken = data.refresh_token;
+                    SaveTokens();
+                }
             }
             else
             {
-                 Console.WriteLine("Error exchanging code for token.");
+                Console.WriteLine("Error exchanging code for token.");
             }
         }
 

@@ -18,7 +18,7 @@ namespace ToodledoConsole
             var table = new Table().Width(100);
             table.Border(TableBorder.Rounded);
             table.BorderStyle(Style.Parse("cyan"));
-            
+
             table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
             table.AddColumn(new TableColumn("[cyan]Task[/]").LeftAligned());
             table.AddColumn(new TableColumn("[cyan]Tags[/]").LeftAligned());
@@ -71,7 +71,7 @@ namespace ToodledoConsole
             var table = new Table().Width(100);
             table.Border(TableBorder.Rounded);
             table.BorderStyle(Style.Parse("cyan"));
-            
+
             table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
             table.AddColumn(new TableColumn("[cyan]P[/]").Centered());
             table.AddColumn(new TableColumn("[cyan]Task[/]").LeftAligned());
@@ -99,10 +99,10 @@ namespace ToodledoConsole
             table.AddRow("[dim]ID:[/]", $"[dim]{task.id}[/]");
             table.AddRow("[dim]Title:[/]", $"[white]{task.title.EscapeMarkup()}[/]");
             table.AddRow("[dim]Priority:[/]", GetPriorityMarkup(task.priority));
-            
-            if (task.folder != 0) 
+
+            if (task.folder != 0)
                 table.AddRow("[dim]Folder:[/]", $"[green]{folders.FirstOrDefault(f => f.id == task.folder)?.name.EscapeMarkup() ?? "Unknown"}[/]");
-            if (task.context != 0) 
+            if (task.context != 0)
                 table.AddRow("[dim]Context:[/]", $"[blue]@{contexts.FirstOrDefault(c => c.id == task.context)?.name.EscapeMarkup() ?? "Unknown"}[/]");
             if (!string.IsNullOrEmpty(task.tag))
                 table.AddRow("[dim]Tags:[/]", $"[silver dim]{task.tag.EscapeMarkup()}[/]");
@@ -132,11 +132,11 @@ namespace ToodledoConsole
             // --- Progress Bar ---
             int totalTasks = tasks.Count + completedCount;
             double progressPercent = totalTasks > 0 ? (double)completedCount / totalTasks * 100 : 0;
-            
+
             // --- Priority Breakdown ---
             var priorityGroups = tasks.GroupBy(t => t.priority)
                 .OrderByDescending(g => g.Key);
-            
+
             var priorityChart = new BreakdownChart().Width(100);
             foreach (var group in priorityGroups)
             {
@@ -293,7 +293,7 @@ namespace ToodledoConsole
             var table = new Table().Width(100);
             table.Border(TableBorder.Rounded);
             table.BorderStyle(Style.Parse("cyan"));
-            
+
             table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
             table.AddColumn(new TableColumn("[cyan]Context Name[/]").LeftAligned());
 
@@ -322,7 +322,7 @@ namespace ToodledoConsole
             var table = new Table().Width(100);
             table.Border(TableBorder.Rounded);
             table.BorderStyle(Style.Parse("cyan"));
-            
+
             table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
             table.AddColumn(new TableColumn("[cyan]Folder Name[/]").LeftAligned());
 
@@ -351,7 +351,7 @@ namespace ToodledoConsole
             var table = new Table().Width(100);
             table.Border(TableBorder.Rounded);
             table.BorderStyle(Style.Parse("cyan"));
-            
+
             table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
             table.AddColumn(new TableColumn("[cyan]Location Name[/]").LeftAligned());
             table.AddColumn(new TableColumn("[cyan]Description[/]").LeftAligned());
@@ -377,7 +377,7 @@ namespace ToodledoConsole
             table.Border(TableBorder.Rounded);
             table.BorderStyle(Style.Parse("cyan"));
             table.HideHeaders();
-            
+
             table.AddColumn(new TableColumn("").Width(20));
             table.AddColumn(new TableColumn(""));
 
@@ -416,7 +416,7 @@ namespace ToodledoConsole
                 BorderStyle = Style.Parse("yellow"),
                 Width = 100
             };
-            
+
             AnsiConsole.Write(panel);
             AnsiConsole.WriteLine();
         }

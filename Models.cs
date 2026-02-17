@@ -9,14 +9,14 @@ namespace ToodledoConsole
         public string RefreshToken { get; set; } = string.Empty;
     }
 
-    public class TokenResponse 
-    { 
+    public class TokenResponse
+    {
         public string access_token { get; set; } = string.Empty;
         public string refresh_token { get; set; } = string.Empty;
     }
 
-    public class ToodledoTask 
-    { 
+    public class ToodledoTask
+    {
         public string id { get; set; } = string.Empty;
         public string title { get; set; } = string.Empty;
         public int priority { get; set; }
@@ -65,8 +65,8 @@ namespace ToodledoConsole
         public string? Tag { get; set; }
         public string? Note { get; set; }
         public string? SearchTerm { get; set; }
-        public bool IsActive => Priority.HasValue || FolderId.HasValue || ContextId.HasValue || 
-                            Starred.HasValue || !string.IsNullOrEmpty(DueDateShortcut) || 
+        public bool IsActive => Priority.HasValue || FolderId.HasValue || ContextId.HasValue ||
+                            Starred.HasValue || !string.IsNullOrEmpty(DueDateShortcut) ||
                             Status.HasValue || !string.IsNullOrEmpty(Tag) || !string.IsNullOrEmpty(Note) || !string.IsNullOrEmpty(SearchTerm);
     }
 }

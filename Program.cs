@@ -22,7 +22,7 @@ namespace ToodledoConsole
         private static FilterService _filterService = null!;
         private static TaskParserService _taskParserService = null!;
         private static InputService _inputService = null!;
-        
+
         private static readonly HttpClient _httpClient = new HttpClient();
         private static List<ToodledoTask> _cachedTasks = new List<ToodledoTask>();
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -32,12 +32,12 @@ namespace ToodledoConsole
         static async Task Main(string[] args)
         {
             AnsiConsole.Clear();
-            
+
             // Display styled banner
             var rule = new Rule("[cyan]TOODLEDO CONSOLE[/]");
             rule.Style = Style.Parse("cyan");
             AnsiConsole.Write(rule);
-            
+
             var versionText = new Markup("[dim]v0.1.0[/]");
             AnsiConsole.Write(versionText);
             AnsiConsole.WriteLine();
@@ -53,13 +53,13 @@ namespace ToodledoConsole
                 _taskParserService = new TaskParserService(_taskService, _folderService, _contextService);
                 _filterService = new FilterService(_taskService, _taskParserService);
                 _inputService = new InputService();
-                
+
                 if (!_authService.LoadSecrets())
                 {
                     AnsiConsole.MarkupLine("[yellow]Setup: Toodledo API credentials not found.[/]");
                     var clientId = AnsiConsole.Ask<string>("Enter your [cyan]Client ID[/]:");
                     var clientSecret = AnsiConsole.Ask<string>("Enter your [cyan]Client Secret[/]:");
-                    
+
                     if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
                     {
                         AnsiConsole.MarkupLine("[red]Error:[/] Client ID and Secret are required.");
@@ -74,7 +74,7 @@ namespace ToodledoConsole
                 bool authenticated = await AnsiConsole.Status()
                     .Spinner(Spinner.Known.Dots)
                     .SpinnerStyle(Style.Parse("cyan"))
-                    .StartAsync("[cyan]Initializing authentication...[/]", async ctx => 
+                    .StartAsync("[cyan]Initializing authentication...[/]", async ctx =>
                     {
                         return await _authService.InitializeAsync();
                     });
@@ -83,7 +83,7 @@ namespace ToodledoConsole
                 {
                     AnsiConsole.MarkupLine("[yellow]1. A browser window should open automatically.[/]");
                     AnsiConsole.MarkupLine("[yellow]2. If not, visit http://localhost:5000/ to authorize.[/]");
-                    
+
                     await AnsiConsole.Status()
                         .Spinner(Spinner.Known.Dots)
                         .SpinnerStyle(Style.Parse("yellow"))
@@ -95,34 +95,34 @@ namespace ToodledoConsole
 
                 AnsiConsole.MarkupLine("[green]✓ Success! Connection Verified.[/]");
                 AnsiConsole.WriteLine();
-                
+
                 await RunCommandLoop();
             }
-            catch (Exception ex) 
-            { 
-                AnsiConsole.MarkupLine($"[red]✗ FATAL ERROR:[/] {ex.Message.EscapeMarkup()}"); 
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ FATAL ERROR:[/] {ex.Message.EscapeMarkup()}");
             }
         }
 
         private static async Task RunCommandLoop()
         {
             UIService.DisplayHelp();
-            
+
             while (true)
             {
                 var input = _inputService.ReadLineWithHistory("[cyan]Toodledo> [/]");
-                
+
                 if (string.IsNullOrWhiteSpace(input)) continue;
 
                 string cleanInput = input.Trim();
                 string lowerInput = cleanInput.ToLower();
 
-                if (lowerInput == "exit") 
+                if (lowerInput == "exit")
                 {
                     AnsiConsole.MarkupLine("[yellow]Goodbye![/]");
                     break;
                 }
-                
+
                 if (lowerInput == "help") UIService.DisplayHelp();
                 else if (lowerInput == "list") await ListTasks();
                 else if (lowerInput == "stats") await ShowStats();
@@ -184,7 +184,7 @@ namespace ToodledoConsole
 
             var criteria = await _taskParserService.ParseAsync(input);
             string title = criteria.SearchTerm ?? "New Task";
-            
+
             bool success = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots)
                 .SpinnerStyle(Style.Parse("cyan"))
@@ -192,26 +192,26 @@ namespace ToodledoConsole
                 {
                     return await _taskService.AddTaskAsync(criteria);
                 });
-            
-            if (success) 
+
+            if (success)
             {
                 AnsiConsole.MarkupLine($"[green]✓ ADDED:[/] {title.EscapeMarkup()}");
-                
+
                 // Show applied attributes
                 var attributes = new List<string>();
                 if (criteria.Priority.HasValue) attributes.Add($"[yellow]Priority:[/] {UIService.GetPriorityName(criteria.Priority.Value)}");
                 if (!string.IsNullOrEmpty(criteria.FolderName)) attributes.Add($"[green]Folder:[/] {criteria.FolderName}");
                 if (!string.IsNullOrEmpty(criteria.ContextName)) attributes.Add($"[blue]Context:[/] @{criteria.ContextName}");
                 if (criteria.Starred.HasValue) attributes.Add($"[gold1]Starred:[/] {(criteria.Starred == 1 ? "Yes" : "No")}");
-                
+
                 if (attributes.Count > 0)
                 {
                     AnsiConsole.MarkupLine($"[dim]Attributes:[/] {string.Join(" [dim]|[/] ", attributes)}");
                 }
 
                 await ListTasks();
-            } 
-            else 
+            }
+            else
             {
                 AnsiConsole.MarkupLine("[red]✗ Error adding task.[/]");
             }
@@ -220,7 +220,7 @@ namespace ToodledoConsole
 
         private static async Task ListTasks()
         {
-            try 
+            try
             {
                 _cachedTasks = await AnsiConsole.Status()
                     .Spinner(Spinner.Known.Dots)
@@ -229,12 +229,12 @@ namespace ToodledoConsole
                     {
                         return await _taskService.GetTasksAsync();
                     });
-                
+
                 UIService.DisplayTasks(_cachedTasks);
-            } 
-            catch (Exception ex) 
-            { 
-                AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message.EscapeMarkup()}"); 
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]✗ Error:[/] {ex.Message.EscapeMarkup()}");
             }
         }
 
@@ -260,10 +260,10 @@ namespace ToodledoConsole
                     });
 
                 var filteredResults = _filterService.ApplyClientSideFilters(tasks, criteria);
-                
+
                 // Get total count for the footer
                 var totalTasksCount = _cachedTasks.Count > 0 ? _cachedTasks.Count : (await _taskService.GetTasksAsync()).Count;
-                if (_cachedTasks.Count == 0) _cachedTasks = tasks; 
+                if (_cachedTasks.Count == 0) _cachedTasks = tasks;
 
                 UIService.DisplayFilteredTasks(filteredResults, criteria, totalTasksCount);
             }
@@ -278,14 +278,14 @@ namespace ToodledoConsole
         {
             if (string.IsNullOrWhiteSpace(keyword)) return;
             if (_cachedTasks.Count == 0) await ListTasks();
-            
+
             var results = _cachedTasks.FindAll(t => t.title.Contains(keyword, StringComparison.OrdinalIgnoreCase));
-            
-            if (results.Count == 0) 
+
+            if (results.Count == 0)
             {
                 AnsiConsole.MarkupLine($"[yellow]No matches for: '{keyword}'[/]");
             }
-            else 
+            else
             {
                 AnsiConsole.MarkupLine($"[cyan]Search results for:[/] [white]{keyword}[/]");
                 UIService.DisplayTasks(results);
@@ -331,10 +331,10 @@ namespace ToodledoConsole
             }
 
             LoadRandomState();
-            
+
             // Get candidates (tasks not yet seen)
             var candidates = pool.Where(t => !_seenTaskIds.Contains(t.id)).ToList();
-            
+
             // If all matching tasks have been seen, reset only those for a fresh cycle
             if (candidates.Count == 0)
             {
@@ -342,12 +342,12 @@ namespace ToodledoConsole
                 candidates = pool.ToList();
                 AnsiConsole.MarkupLine("[yellow]🔄 CYCLE COMPLETE for this selection - Starting fresh random order[/]");
             }
-            
+
             // Pick random task from candidates
             var t = candidates[new Random().Next(candidates.Count)];
             _seenTaskIds.Add(t.id);
             SaveRandomState();
-            
+
             // Display in a styled panel
             var panel = new Panel($"[white]{t.title}[/]\n\n[dim]ID: {t.id}[/]")
             {
@@ -357,7 +357,7 @@ namespace ToodledoConsole
                 Padding = new Padding(2, 1),
                 Width = 100
             };
-            
+
             AnsiConsole.WriteLine();
             AnsiConsole.Write(panel);
             AnsiConsole.WriteLine();
@@ -397,8 +397,8 @@ namespace ToodledoConsole
                 {
                     return await _taskService.CompleteTaskAsync(id);
                 });
-            
-            if (success) 
+
+            if (success)
             {
                 AnsiConsole.MarkupLine("[green]✓ Task Completed![/]");
                 _cachedTasks.RemoveAll(t => t.id == id);
@@ -406,7 +406,7 @@ namespace ToodledoConsole
                 SaveRandomState();
                 AnsiConsole.MarkupLine($"[cyan]{_cachedTasks.Count} Tasks Remaining.[/]");
             }
-            else 
+            else
             {
                 AnsiConsole.MarkupLine("[red]✗ Error completing task.[/]");
             }
@@ -432,7 +432,7 @@ namespace ToodledoConsole
 
             var folders = await _folderService.GetFoldersAsync();
             var contexts = await _contextService.GetContextsAsync();
-            
+
             UIService.DisplayTaskDetail(task, folders, contexts, "Editing Task", "yellow");
 
             // Reconstruct raw string for Shadow Prompt
@@ -448,7 +448,7 @@ namespace ToodledoConsole
             }
 
             var criteria = await _taskParserService.ParseAsync(editedInput);
-            
+
             bool success = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots)
                 .SpinnerStyle(Style.Parse("cyan"))
@@ -492,7 +492,7 @@ namespace ToodledoConsole
             UIService.DisplayTaskDetail(task, folders, contexts, "Task Details", "cyan");
         }
 
-        
+
         private static async Task TagTask(string input)
         {
             if (string.IsNullOrWhiteSpace(input)) return;
@@ -527,7 +527,7 @@ namespace ToodledoConsole
                 AnsiConsole.MarkupLine("[red]✗ Error updating tags.[/]");
             }
         }
-        
+
         private static async Task NoteTask(string input)
         {
             if (string.IsNullOrWhiteSpace(input)) return;

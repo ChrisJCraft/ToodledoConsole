@@ -58,36 +58,38 @@ namespace ToodledoConsole
             var url = $"https://api.toodledo.com/3/tasks/get.php?access_token={_authService.AccessToken}&comp=0&fields={fields}{queryParams}";
             var json = await _httpClient.GetStringAsync(url);
             using var doc = JsonDocument.Parse(json);
-            
+
             if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("errorCode", out var errCode))
             {
                 throw new ToodledoApiException(errCode.GetInt32(), doc.RootElement.GetProperty("errorDesc").GetString() ?? "Unknown API Error");
             }
 
             if (doc.RootElement.ValueKind != JsonValueKind.Array) return new List<ToodledoTask>();
-            
+
             var tasks = new List<ToodledoTask>();
-            foreach (var element in doc.RootElement.EnumerateArray()) {
+            foreach (var element in doc.RootElement.EnumerateArray())
+            {
                 // Skip metadata object which doesn't have an 'id' property
                 if (!element.TryGetProperty("id", out var idValue)) continue;
 
-                var task = new ToodledoTask { 
+                var task = new ToodledoTask
+                {
                     id = (idValue.ValueKind == JsonValueKind.Number ? idValue.GetInt64().ToString() : idValue.GetString()) ?? string.Empty,
                     title = (element.TryGetProperty("title", out var tProp) ? tProp.GetString() : "No Title") ?? "No Title"
                 };
 
-                    if (element.TryGetProperty("priority", out var pProp)) task.priority = pProp.GetInt32();
-                    if (element.TryGetProperty("folder", out var fProp)) task.folder = fProp.GetInt64();
-                    if (element.TryGetProperty("context", out var cProp)) task.context = cProp.GetInt64();
-                    if (element.TryGetProperty("star", out var sProp)) task.star = sProp.GetInt32();
-                    if (element.TryGetProperty("duedate", out var dProp)) task.duedate = dProp.GetInt64();
-                    if (element.TryGetProperty("status", out var stProp)) task.status = stProp.GetInt32();
-                    if (element.TryGetProperty("tag", out var tagProp)) task.tag = tagProp.GetString() ?? string.Empty;
-                    if (element.TryGetProperty("note", out var noteProp)) task.note = noteProp.GetString() ?? string.Empty;
-                    if (element.TryGetProperty("added", out var addedProp)) task.added = addedProp.GetInt64();
-                    if (element.TryGetProperty("location", out var locProp)) task.location = locProp.GetInt64();
+                if (element.TryGetProperty("priority", out var pProp)) task.priority = pProp.GetInt32();
+                if (element.TryGetProperty("folder", out var fProp)) task.folder = fProp.GetInt64();
+                if (element.TryGetProperty("context", out var cProp)) task.context = cProp.GetInt64();
+                if (element.TryGetProperty("star", out var sProp)) task.star = sProp.GetInt32();
+                if (element.TryGetProperty("duedate", out var dProp)) task.duedate = dProp.GetInt64();
+                if (element.TryGetProperty("status", out var stProp)) task.status = stProp.GetInt32();
+                if (element.TryGetProperty("tag", out var tagProp)) task.tag = tagProp.GetString() ?? string.Empty;
+                if (element.TryGetProperty("note", out var noteProp)) task.note = noteProp.GetString() ?? string.Empty;
+                if (element.TryGetProperty("added", out var addedProp)) task.added = addedProp.GetInt64();
+                if (element.TryGetProperty("location", out var locProp)) task.location = locProp.GetInt64();
 
-                    tasks.Add(task);
+                tasks.Add(task);
             }
             return tasks;
         }
@@ -98,21 +100,22 @@ namespace ToodledoConsole
             var url = $"https://api.toodledo.com/3/tasks/get.php?access_token={_authService.AccessToken}&id={id}&fields={fields}";
             var json = await _httpClient.GetStringAsync(url);
             using var doc = JsonDocument.Parse(json);
-            
+
             if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("errorCode", out var errCode))
             {
                 throw new ToodledoApiException(errCode.GetInt32(), doc.RootElement.GetProperty("errorDesc").GetString() ?? "Unknown API Error");
             }
 
             if (doc.RootElement.ValueKind != JsonValueKind.Array) return null;
-            
+
             // Toodledo API returns an array where the first element is metadata
             // and subsequent elements are the actual tasks. We need to find the one with an ID.
             foreach (var element in doc.RootElement.EnumerateArray())
             {
                 if (element.TryGetProperty("id", out var idValue))
                 {
-                    return new ToodledoTask { 
+                    return new ToodledoTask
+                    {
                         id = (idValue.ValueKind == JsonValueKind.Number ? idValue.GetInt64().ToString() : idValue.GetString()) ?? string.Empty,
                         title = (element.TryGetProperty("title", out var tProp) ? tProp.GetString() : "No Title") ?? "No Title",
                         priority = element.TryGetProperty("priority", out var pProp) ? pProp.GetInt32() : 0,
@@ -128,7 +131,7 @@ namespace ToodledoConsole
                     };
                 }
             }
-            
+
             return null;
         }
 
@@ -208,14 +211,14 @@ namespace ToodledoConsole
             var url = $"https://api.toodledo.com/3/tasks/get.php?access_token={_authService.AccessToken}&comp=1&fields=id";
             var json = await _httpClient.GetStringAsync(url);
             using var doc = JsonDocument.Parse(json);
-            
+
             if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("errorCode", out var errCode))
             {
                 throw new ToodledoApiException(errCode.GetInt32(), doc.RootElement.GetProperty("errorDesc").GetString() ?? "Unknown API Error");
             }
 
             if (doc.RootElement.ValueKind != JsonValueKind.Array) return 0;
-            
+
             // Toodledo API returns an array where the first element is metadata
             // e.g. {"num":"42","total":"42"}
             var metadata = doc.RootElement[0];
@@ -224,7 +227,7 @@ namespace ToodledoConsole
                 if (totalProp.ValueKind == JsonValueKind.Number) return totalProp.GetInt32();
                 if (totalProp.ValueKind == JsonValueKind.String && int.TryParse(totalProp.GetString(), out var count)) return count;
             }
-            
+
             return 0;
         }
     }

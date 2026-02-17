@@ -64,7 +64,7 @@ namespace ToodledoConsole
             });
             var response = await _httpClient.PostAsync("https://api.toodledo.com/3/contexts/add.php", content);
             var responseJson = await response.Content.ReadAsStringAsync();
-            
+
             using var doc = JsonDocument.Parse(responseJson);
             if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("errorCode", out var errCode))
             {
