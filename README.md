@@ -27,27 +27,31 @@ A lightweight, modern C# CLI tool for managing your [Toodledo](https://www.toodl
 | Command | Description |
 |---------|-------------|
 | `list` | Display all current tasks in a formatted table |
+| `stats` | Show productivity dashboard with charts and progress |
 | `add [text]` | Create a new task (supports shorthands) |
 | `edit [id]` | Edit task using "Shadow Prompt" shorthand mode |
 | `view [id]` | View full task details (including notes) |
-| `tag [id] [tags]` | Quickly update tags for a task |
-| `note [id] [text]` | Quickly update note for a task |
-| `done [id1] [id2]...` | Mark one or more tasks as completed |
-| `delete [id]` | Permanently remove a task |
+| `tag [id]... [tags]` | Quickly update tags for one or more tasks |
+| `note [id]... [text]` | Quickly update note for one or more tasks |
+| `done [id]...` | Mark one or more tasks as completed |
+| `delete [id]...` | Permanently remove one or more tasks |
+| `star [id]...` | Star one or more tasks |
+| `unstar [id]...` | Unstar one or more tasks |
 | `find [text]` | Search for tasks by title or keyword |
 | `filter [k:v]` | Power-user filters (e.g., `filter p:1 f:Inbox @Work`) |
-| `folder` | List all folders |
+| `folder [search]` | List all folders (optional search filtering) |
 | `folder-add [name]` | Create a new folder |
 | `folder-edit [i|n] [new]` | Rename a folder (by ID or name) |
 | `folder-delete [i|n]...` | Remove one or more folders (by ID or name) |
-| `context` | List all contexts |
+| `context [search]` | List all contexts (optional search filtering) |
 | `context-add [name]` | Create a new context |
 | `context-edit [i|n] [new]` | Rename a context (by ID or name) |
 | `context-delete [i|n]...` | Remove one or more contexts (by ID or name) |
-| `location` | List all locations |
+| `location [search]` | List all locations (optional search filtering) |
 | `location-add [name]` | Create a new location |
 | `location-edit [i|n] [new]` | Rename a location (by ID or name) |
 | `location-delete [i|n]...` | Remove one or more locations (by ID or name) |
+| `setup` | Run the API credential setup wizard |
 | `random [k:v]` | Pick a random task (supports selectors like `random p:2`) |
 | `help` | Show available commands and usage information |
 | `exit` | Close the application |
@@ -84,40 +88,37 @@ git clone https://github.com/ChrisJCraft/ToodledoConsole.git
 cd ToodledoConsole
 ```
 
-### 2. Create the `auth.txt` File
-
-Create a file named `auth.txt` in the project root directory with your Toodledo API credentials:
-
-```
-YOUR_CLIENT_ID
-YOUR_CLIENT_SECRET
-```
-
-- **Line 1**: Your Toodledo Client ID
-- **Line 2**: Your Toodledo Client Secret
-
-> **Note**: This file is automatically ignored by Git (listed in `.gitignore`) to keep your credentials safe.
-
-### 3. Restore Dependencies
+### 2. Restore Dependencies
 
 ```bash
 dotnet restore
 ```
 
-### 4. Run the Application
+### 3. Run the Application
 
 ```bash
 dotnet run
 ```
 
+### 4. Setup
+
+On first run, if `auth.txt` is missing, the **Setup Wizard** will launch automatically:
+1. Follow the prompts to enter your **Client ID** and **Client Secret**.
+2. Credentials will be saved securely to `auth.txt` (which is ignored by Git).
+
+Alternatively, you can manually create `auth.txt` in the root folder:
+```
+YOUR_CLIENT_ID
+YOUR_CLIENT_SECRET
+```
+
 ### 5. Authorize the Application
 
-On first run:
-1. A browser window will open automatically
-2. If it doesn't open, manually navigate to `http://localhost:5000`
-3. You'll be redirected to Toodledo to authorize the application
-4. After authorization, you'll be redirected back and can close the browser
-5. The application will save your access token for future use
+1. A browser window will open automatically.
+2. If it doesn't open, manually navigate to `http://localhost:5000`.
+3. You'll be redirected to Toodledo to authorize the application.
+4. After authorization, you'll be redirected back and can close the browser.
+5. The application will save your access token for future use.
 
 > **Note**: The OAuth2 redirect URI is configured for `http://localhost:5000/callback`. Make sure this matches what you registered with Toodledo.
 
@@ -173,7 +174,7 @@ ToodledoConsole/
 ├── auth.txt              # API credentials (NOT in Git)
 ├── token.txt             # OAuth tokens (NOT in Git)
 ├── random_state.json     # Random task selection state (NOT in Git)
-└── README.md             # This file
+├── README.md             # This file
 ```
 
 ## 🐛 Troubleshooting
@@ -190,6 +191,7 @@ This usually means:
 - Your `auth.txt` file is missing or incorrectly formatted
 - Your Client ID or Client Secret is incorrect
 - Verify your credentials in the Toodledo API settings
+- Run `setup` command to re-enter credentials
 
 ### "Redirect URI Mismatch" Error
 
@@ -229,6 +231,7 @@ Contributions are welcome! Feel free to:
 - Report bugs by opening an issue
 - Suggest new features
 - Submit pull requests
+- See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ## 👤 Author
 
