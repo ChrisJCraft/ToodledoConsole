@@ -236,8 +236,9 @@ namespace ToodledoConsole
                 .FirstOrDefault();
             string topLocationName = topLocation != null ? locations.FirstOrDefault(l => l.id == topLocation.Key)?.name ?? "Unknown" : "N/A";
 
-            var oldestTask = tasks.OrderBy(t => t.added).FirstOrDefault();
-            string oldestTaskInfo = oldestTask != null ? $"{oldestTask.title.EscapeMarkup()} [dim]({DateTimeOffset.FromUnixTimeSeconds(oldestTask.added).LocalDateTime:yyyy-MM-dd})[/]" : "N/A";
+            var oldestTask = tasks.Where(t => t.added > 0).OrderBy(t => t.added).FirstOrDefault();
+            string oldestTaskTitle = oldestTask != null && !string.IsNullOrWhiteSpace(oldestTask.title) ? oldestTask.title.EscapeMarkup() : "[dim](no title)[/]";
+            string oldestTaskInfo = oldestTask != null ? $"{oldestTaskTitle} [dim]({DateTimeOffset.FromUnixTimeSeconds(oldestTask.added).LocalDateTime:yyyy-MM-dd})[/]" : "N/A";
 
             var factTable = new Table().NoBorder().HideHeaders().Width(100);
             factTable.AddColumn("Label"); factTable.AddColumn("Value");
