@@ -506,29 +506,42 @@ namespace ToodledoConsole
         {
             if (string.IsNullOrWhiteSpace(input)) return;
 
-            var parts = input.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 2)
+            var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var ids = new List<string>();
+            int i = 0;
+            
+            // Collect all leading numeric parts as IDs
+            while (i < parts.Length)
             {
-                AnsiConsole.MarkupLine("[red]Usage: tag <id> <tags>[/]");
+                string cleanId = parts[i].TrimEnd(',');
+                if (long.TryParse(cleanId, out _))
+                {
+                    ids.Add(cleanId);
+                    i++;
+                }
+                else break;
+            }
+
+            if (ids.Count == 0 || i == parts.Length)
+            {
+                AnsiConsole.MarkupLine("[red]Usage: tag <id1> [id2] ... <tags>[/]");
                 return;
             }
 
-            string id = parts[0];
-            string tags = parts[1];
-
+            string tags = string.Join(" ", parts.Skip(i));
             var criteria = new FilterCriteria { Tag = tags };
 
             bool success = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots)
                 .SpinnerStyle(Style.Parse("cyan"))
-                .StartAsync("[cyan]Updating tags...[/]", async ctx =>
+                .StartAsync($"[cyan]Updating tags for {ids.Count} task(s)...[/]", async ctx =>
                 {
-                    return await _taskService.UpdateTaskAsync(id, criteria);
+                    return await _taskService.UpdateTasksAsync(ids, criteria);
                 });
 
             if (success)
             {
-                AnsiConsole.MarkupLine("[green]✓ Tags Updated![/]");
+                AnsiConsole.MarkupLine($"[green]✓ Tags Updated for {ids.Count} task(s)![/]");
                 await ListTasks();
             }
             else
@@ -541,29 +554,42 @@ namespace ToodledoConsole
         {
             if (string.IsNullOrWhiteSpace(input)) return;
 
-            var parts = input.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 2)
+            var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var ids = new List<string>();
+            int i = 0;
+
+            // Collect all leading numeric parts as IDs
+            while (i < parts.Length)
             {
-                AnsiConsole.MarkupLine("[red]Usage: note <id> <text>[/]");
+                string cleanId = parts[i].TrimEnd(',');
+                if (long.TryParse(cleanId, out _))
+                {
+                    ids.Add(cleanId);
+                    i++;
+                }
+                else break;
+            }
+
+            if (ids.Count == 0 || i == parts.Length)
+            {
+                AnsiConsole.MarkupLine("[red]Usage: note <id1> [id2] ... <text>[/]");
                 return;
             }
 
-            string id = parts[0];
-            string note = parts[1];
-
+            string note = string.Join(" ", parts.Skip(i));
             var criteria = new FilterCriteria { Note = note };
 
             bool success = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots)
                 .SpinnerStyle(Style.Parse("cyan"))
-                .StartAsync("[cyan]Updating note...[/]", async ctx =>
+                .StartAsync($"[cyan]Updating note for {ids.Count} task(s)...[/]", async ctx =>
                 {
-                    return await _taskService.UpdateTaskAsync(id, criteria);
+                    return await _taskService.UpdateTasksAsync(ids, criteria);
                 });
 
             if (success)
             {
-                AnsiConsole.MarkupLine("[green]✓ Note Updated![/]");
+                AnsiConsole.MarkupLine($"[green]✓ Note Updated for {ids.Count} task(s)![/]");
                 await ListTasks();
             }
             else

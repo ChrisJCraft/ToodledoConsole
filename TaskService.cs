@@ -136,23 +136,31 @@ namespace ToodledoConsole
             return null;
         }
 
-        public async Task<bool> UpdateTaskAsync(string id, FilterCriteria criteria)
+        public async Task<bool> UpdateTasksAsync(IEnumerable<string> ids, FilterCriteria criteria)
         {
-            var taskObject = new Dictionary<string, object>
+            var taskList = new List<Dictionary<string, object>>();
+            foreach (var id in ids)
             {
-                { "id", id }
-            };
+                var taskObject = new Dictionary<string, object>
+                {
+                    { "id", id }
+                };
 
-            if (!string.IsNullOrEmpty(criteria.SearchTerm)) taskObject["title"] = criteria.SearchTerm;
-            if (criteria.Priority.HasValue) taskObject["priority"] = criteria.Priority.Value;
-            if (criteria.FolderId.HasValue) taskObject["folder"] = criteria.FolderId.Value;
-            if (criteria.ContextId.HasValue) taskObject["context"] = criteria.ContextId.Value;
-            if (criteria.Starred.HasValue) taskObject["star"] = criteria.Starred.Value;
-            if (criteria.Status.HasValue) taskObject["status"] = criteria.Status.Value;
-            if (!string.IsNullOrEmpty(criteria.Tag)) taskObject["tag"] = criteria.Tag;
-            if (!string.IsNullOrEmpty(criteria.Note)) taskObject["note"] = criteria.Note;
+                if (!string.IsNullOrEmpty(criteria.SearchTerm)) taskObject["title"] = criteria.SearchTerm;
+                if (criteria.Priority.HasValue) taskObject["priority"] = criteria.Priority.Value;
+                if (criteria.FolderId.HasValue) taskObject["folder"] = criteria.FolderId.Value;
+                if (criteria.ContextId.HasValue) taskObject["context"] = criteria.ContextId.Value;
+                if (criteria.Starred.HasValue) taskObject["star"] = criteria.Starred.Value;
+                if (criteria.Status.HasValue) taskObject["status"] = criteria.Status.Value;
+                if (!string.IsNullOrEmpty(criteria.Tag)) taskObject["tag"] = criteria.Tag;
+                if (!string.IsNullOrEmpty(criteria.Note)) taskObject["note"] = criteria.Note;
 
-            var taskData = JsonSerializer.Serialize(new[] { taskObject }, _jsonOptions);
+                taskList.Add(taskObject);
+            }
+
+            if (taskList.Count == 0) return true;
+
+            var taskData = JsonSerializer.Serialize(taskList, _jsonOptions);
             var content = new FormUrlEncodedContent(new[] {
                 new KeyValuePair<string, string>("access_token", _authService.AccessToken),
                 new KeyValuePair<string, string>("tasks", taskData)
@@ -167,6 +175,11 @@ namespace ToodledoConsole
             }
 
             return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> UpdateTaskAsync(string id, FilterCriteria criteria)
+        {
+            return await UpdateTasksAsync(new[] { id }, criteria);
         }
 
         public async Task<bool> CompleteTasksAsync(IEnumerable<string> ids)
