@@ -572,20 +572,24 @@ namespace ToodledoConsole
             }
         }
 
-        private static async Task DeleteTask(string id)
+        private static async Task DeleteTask(string input)
         {
-            if (string.IsNullOrWhiteSpace(id)) return;
+            if (string.IsNullOrWhiteSpace(input)) return;
 
-            var task = await _taskService.GetTaskAsync(id);
-            if (task == null)
+            var ids = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (ids.Length == 0) return;
+
+            var tasksToDelete = new List<ToodledoTask>();
+            foreach (var id in ids)
             {
-                AnsiConsole.MarkupLine("[red]✗ Task not found.[/]");
-                return;
+                var task = await _taskService.GetTaskAsync(id);
+                if (task != null) tasksToDelete.Add(task);
+                else AnsiConsole.MarkupLine($"[yellow]⚠ Task not found: {id}[/]");
             }
 
-            AnsiConsole.MarkupLine($"[yellow]Are you sure you want to delete:[/] [white]{task.title}[/]? [dim](y/n)[/]");
-            var key = Console.ReadKey(true);
-            if (key.Key != ConsoleKey.Y)
+            if (tasksToDelete.Count == 0) return;
+
+            if (!UIService.ConfirmDeletion("Task", tasksToDelete.Select(t => t.title).ToList()))
             {
                 AnsiConsole.MarkupLine("[yellow]Delete cancelled.[/]");
                 return;
@@ -594,19 +598,25 @@ namespace ToodledoConsole
             bool success = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots)
                 .SpinnerStyle(Style.Parse("red"))
-                .StartAsync("[red]Deleting task...[/]", async ctx =>
+                .StartAsync("[red]Deleting tasks...[/]", async ctx =>
                 {
-                    return await _taskService.DeleteTaskAsync(id);
+                    return await _taskService.DeleteTasksAsync(tasksToDelete.Select(t => t.id));
                 });
 
             if (success)
             {
-                AnsiConsole.MarkupLine("[green]✓ Task Deleted![/]");
+                AnsiConsole.MarkupLine($"[green]✓ {tasksToDelete.Count} Task(s) Deleted![/]");
+                foreach (var t in tasksToDelete)
+                {
+                    _cachedTasks.RemoveAll(ct => ct.id == t.id);
+                    _seenTaskIds.Remove(t.id);
+                }
+                SaveRandomState();
                 await ListTasks();
             }
             else
             {
-                AnsiConsole.MarkupLine("[red]✗ Error deleting task.[/]");
+                AnsiConsole.MarkupLine("[red]✗ Error deleting one or more tasks.[/]");
             }
         }
 
@@ -697,28 +707,32 @@ namespace ToodledoConsole
             }
         }
 
-        private static async Task DeleteContext(string identifier)
+        private static async Task DeleteContext(string input)
         {
-            if (string.IsNullOrWhiteSpace(identifier))
+            if (string.IsNullOrWhiteSpace(input))
             {
-                AnsiConsole.MarkupLine("[red]Usage: delete-context <id_or_name>[/]");
+                AnsiConsole.MarkupLine("[red]Usage: delete-context <id_or_name>...[/]");
                 return;
             }
 
+            var identifiers = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (identifiers.Length == 0) return;
+
             try
             {
-                var contexts = await _contextService.GetContextsAsync();
-                var context = contexts.FirstOrDefault(c => c.id.ToString() == identifier || c.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
+                var allContexts = await _contextService.GetContextsAsync();
+                var contextsToDelete = new List<ToodledoContext>();
 
-                if (context == null)
+                foreach (var id in identifiers)
                 {
-                    AnsiConsole.MarkupLine($"[red]✗ Context not found: {identifier}[/]");
-                    return;
+                    var context = allContexts.FirstOrDefault(c => c.id.ToString() == id || c.name.Equals(id, StringComparison.OrdinalIgnoreCase));
+                    if (context != null) contextsToDelete.Add(context);
+                    else AnsiConsole.MarkupLine($"[yellow]⚠ Context not found: {id}[/]");
                 }
 
-                AnsiConsole.MarkupLine($"[yellow]Are you sure you want to delete context:[/] [white]{context.name}[/]? [dim](y/n)[/]");
-                var key = Console.ReadKey(true);
-                if (key.Key != ConsoleKey.Y)
+                if (contextsToDelete.Count == 0) return;
+
+                if (!UIService.ConfirmDeletion("Context", contextsToDelete.Select(c => c.name).ToList()))
                 {
                     AnsiConsole.MarkupLine("[yellow]Delete cancelled.[/]");
                     return;
@@ -727,18 +741,18 @@ namespace ToodledoConsole
                 bool success = await AnsiConsole.Status()
                     .Spinner(Spinner.Known.Dots)
                     .SpinnerStyle(Style.Parse("red"))
-                    .StartAsync("[red]Deleting context...[/]", async ctx =>
+                    .StartAsync("[red]Deleting contexts...[/]", async ctx =>
                     {
-                        return await _contextService.DeleteContextAsync(context.id);
+                        return await _contextService.DeleteContextsAsync(contextsToDelete.Select(c => c.id));
                     });
 
                 if (success)
                 {
                     _taskParserService.ClearCache();
-                    AnsiConsole.MarkupLine("[green]✓ Context Deleted![/]");
+                    AnsiConsole.MarkupLine($"[green]✓ {contextsToDelete.Count} Context(s) Deleted![/]");
                 }
                 else
-                    AnsiConsole.MarkupLine("[red]✗ Error deleting context.[/]");
+                    AnsiConsole.MarkupLine("[red]✗ Error deleting one or more contexts.[/]");
             }
             catch (ToodledoApiException ex)
             {
@@ -866,28 +880,32 @@ namespace ToodledoConsole
             }
         }
 
-        private static async Task DeleteFolder(string identifier)
+        private static async Task DeleteFolder(string input)
         {
-            if (string.IsNullOrWhiteSpace(identifier))
+            if (string.IsNullOrWhiteSpace(input))
             {
-                AnsiConsole.MarkupLine("[red]Usage: delete-folder <id_or_name>[/]");
+                AnsiConsole.MarkupLine("[red]Usage: delete-folder <id_or_name>...[/]");
                 return;
             }
 
+            var identifiers = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (identifiers.Length == 0) return;
+
             try
             {
-                var folders = await _folderService.GetFoldersAsync();
-                var folder = folders.FirstOrDefault(f => f.id.ToString() == identifier || f.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
+                var allFolders = await _folderService.GetFoldersAsync();
+                var foldersToDelete = new List<ToodledoFolder>();
 
-                if (folder == null)
+                foreach (var id in identifiers)
                 {
-                    AnsiConsole.MarkupLine($"[red]✗ Folder not found: {identifier}[/]");
-                    return;
+                    var folder = allFolders.FirstOrDefault(f => f.id.ToString() == id || f.name.Equals(id, StringComparison.OrdinalIgnoreCase));
+                    if (folder != null) foldersToDelete.Add(folder);
+                    else AnsiConsole.MarkupLine($"[yellow]⚠ Folder not found: {id}[/]");
                 }
 
-                AnsiConsole.MarkupLine($"[yellow]Are you sure you want to delete folder:[/] [white]{folder.name}[/]? [dim](y/n)[/]");
-                var key = Console.ReadKey(true);
-                if (key.Key != ConsoleKey.Y)
+                if (foldersToDelete.Count == 0) return;
+
+                if (!UIService.ConfirmDeletion("Folder", foldersToDelete.Select(f => f.name).ToList()))
                 {
                     AnsiConsole.MarkupLine("[yellow]Delete cancelled.[/]");
                     return;
@@ -896,18 +914,18 @@ namespace ToodledoConsole
                 bool success = await AnsiConsole.Status()
                     .Spinner(Spinner.Known.Dots)
                     .SpinnerStyle(Style.Parse("red"))
-                    .StartAsync("[red]Deleting folder...[/]", async ctx =>
+                    .StartAsync("[red]Deleting folders...[/]", async ctx =>
                     {
-                        return await _folderService.DeleteFolderAsync(folder.id);
+                        return await _folderService.DeleteFoldersAsync(foldersToDelete.Select(f => f.id));
                     });
 
                 if (success)
                 {
                     _taskParserService.ClearCache();
-                    AnsiConsole.MarkupLine("[green]✓ Folder Deleted![/]");
+                    AnsiConsole.MarkupLine($"[green]✓ {foldersToDelete.Count} Folder(s) Deleted![/]");
                 }
                 else
-                    AnsiConsole.MarkupLine("[red]✗ Error deleting folder.[/]");
+                    AnsiConsole.MarkupLine("[red]✗ Error deleting one or more folders.[/]");
             }
             catch (ToodledoApiException ex)
             {
@@ -1029,28 +1047,32 @@ namespace ToodledoConsole
             }
         }
 
-        private static async Task DeleteLocation(string identifier)
+        private static async Task DeleteLocation(string input)
         {
-            if (string.IsNullOrWhiteSpace(identifier))
+            if (string.IsNullOrWhiteSpace(input))
             {
-                AnsiConsole.MarkupLine("[red]Usage: delete-location <id_or_name>[/]");
+                AnsiConsole.MarkupLine("[red]Usage: delete-location <id_or_name>...[/]");
                 return;
             }
 
+            var identifiers = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (identifiers.Length == 0) return;
+
             try
             {
-                var locations = await _locationService.GetLocationsAsync();
-                var loc = locations.FirstOrDefault(l => l.id.ToString() == identifier || l.name.Equals(identifier, StringComparison.OrdinalIgnoreCase));
+                var allLocations = await _locationService.GetLocationsAsync();
+                var locationsToDelete = new List<ToodledoLocation>();
 
-                if (loc == null)
+                foreach (var id in identifiers)
                 {
-                    AnsiConsole.MarkupLine($"[red]✗ Location not found: {identifier}[/]");
-                    return;
+                    var location = allLocations.FirstOrDefault(l => l.id.ToString() == id || l.name.Equals(id, StringComparison.OrdinalIgnoreCase));
+                    if (location != null) locationsToDelete.Add(location);
+                    else AnsiConsole.MarkupLine($"[yellow]⚠ Location not found: {id}[/]");
                 }
 
-                AnsiConsole.MarkupLine($"[yellow]Are you sure you want to delete location:[/] [white]{loc.name}[/]? [dim](y/n)[/]");
-                var key = Console.ReadKey(true);
-                if (key.Key != ConsoleKey.Y)
+                if (locationsToDelete.Count == 0) return;
+
+                if (!UIService.ConfirmDeletion("Location", locationsToDelete.Select(l => l.name).ToList()))
                 {
                     AnsiConsole.MarkupLine("[yellow]Delete cancelled.[/]");
                     return;
@@ -1059,15 +1081,18 @@ namespace ToodledoConsole
                 bool success = await AnsiConsole.Status()
                     .Spinner(Spinner.Known.Dots)
                     .SpinnerStyle(Style.Parse("red"))
-                    .StartAsync("[red]Deleting location...[/]", async ctx =>
+                    .StartAsync("[red]Deleting locations...[/]", async ctx =>
                     {
-                        return await _locationService.DeleteLocationAsync(loc.id);
+                        return await _locationService.DeleteLocationsAsync(locationsToDelete.Select(l => l.id));
                     });
 
                 if (success)
-                    AnsiConsole.MarkupLine("[green]✓ Location Deleted![/]");
+                {
+                    _taskParserService.ClearCache();
+                    AnsiConsole.MarkupLine($"[green]✓ {locationsToDelete.Count} Location(s) Deleted![/]");
+                }
                 else
-                    AnsiConsole.MarkupLine("[red]✗ Error deleting location.[/]");
+                    AnsiConsole.MarkupLine("[red]✗ Error deleting one or more locations.[/]");
             }
             catch (ToodledoApiException ex)
             {

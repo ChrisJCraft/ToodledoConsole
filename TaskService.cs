@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -202,9 +203,9 @@ namespace ToodledoConsole
             return await CompleteTasksAsync(new[] { id });
         }
 
-        public async Task<bool> DeleteTaskAsync(string id)
+        public async Task<bool> DeleteTasksAsync(IEnumerable<string> ids)
         {
-            var taskData = "[\"" + id + "\"]";
+            var taskData = JsonSerializer.Serialize(ids.ToArray(), _jsonOptions);
             var content = new FormUrlEncodedContent(new[] {
                 new KeyValuePair<string, string>("access_token", _authService.AccessToken),
                 new KeyValuePair<string, string>("tasks", taskData)
@@ -219,6 +220,11 @@ namespace ToodledoConsole
             }
 
             return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> DeleteTaskAsync(string id)
+        {
+            return await DeleteTasksAsync(new[] { id });
         }
 
         public async Task<int> GetCompletedCountAsync()

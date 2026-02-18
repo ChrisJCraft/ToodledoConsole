@@ -408,18 +408,18 @@ namespace ToodledoConsole
             table.AddRow("[cyan]tag[/] [white]<id> <tags>[/]", "[dim]Quickly update tags for a task[/]");
             table.AddRow("[cyan]note[/] [white]<id> <text>[/]", "[dim]Quickly update note for a task[/]");
             table.AddRow("[cyan]done[/] [white]<id1> <id2>...[/]", "[dim]Mark one or more tasks as completed[/]");
-            table.AddRow("[cyan]delete[/] [white]<id>[/]", "[dim]Permanently remove a task[/]");
+            table.AddRow("[cyan]delete[/] [white]<id1> <id2>...[/]", "[dim]Permanently remove one or more tasks[/]");
             table.AddRow("[cyan]add-context[/] [white]<name>[/]", "[dim]Create a new context[/]");
             table.AddRow("[cyan]edit-context[/] [white]<id|name> <new>[/]", "[dim]Rename a context[/]");
-            table.AddRow("[cyan]delete-context[/] [white]<id|name>[/]", "[dim]Remove a context[/]");
+            table.AddRow("[cyan]delete-context[/] [white]<id1> <id2>...[/]", "[dim]Remove one or more contexts[/]");
             table.AddRow("[cyan]folders[/]", "[dim]Display all folders[/]");
             table.AddRow("[cyan]add-folder[/] [white]<name>[/]", "[dim]Create a new folder[/]");
             table.AddRow("[cyan]edit-folder[/] [white]<id|name> <new>[/]", "[dim]Rename a folder[/]");
-            table.AddRow("[cyan]delete-folder[/] [white]<id|name>[/]", "[dim]Remove a folder[/]");
+            table.AddRow("[cyan]delete-folder[/] [white]<id1> <id2>...[/]", "[dim]Remove one or more folders[/]");
             table.AddRow("[cyan]locations[/]", "[dim]Display all locations[/]");
             table.AddRow("[cyan]add-location[/] [white]<name>[/]", "[dim]Create a new location[/]");
             table.AddRow("[cyan]edit-location[/] [white]<id|name> <new>[/]", "[dim]Rename a location[/]");
-            table.AddRow("[cyan]delete-location[/] [white]<id|name>[/]", "[dim]Remove a location[/]");
+            table.AddRow("[cyan]delete-location[/] [white]<id1> <id2>...[/]", "[dim]Remove one or more locations[/]");
             table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
             table.AddRow("[cyan]filter[/] [white][[k:v]][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");
             table.AddRow("[cyan]random[/] [white][[k:v]][/]", "[dim]Show random task (supports selectors like p:2, @Work)[/]");
@@ -488,6 +488,30 @@ namespace ToodledoConsole
                 -1 => "[dim]?[/]",
                 _ => "[dim] [/]"
             };
+        }
+        public static bool ConfirmDeletion(string entityType, List<string> itemNames)
+        {
+            if (itemNames.Count == 0) return false;
+
+            var table = new Table().NoBorder().HideHeaders().Width(100);
+            table.AddColumn("Item");
+            foreach (var name in itemNames)
+            {
+                table.AddRow($"[red]•[/] [white]{name.EscapeMarkup()}[/]");
+            }
+
+            var panel = new Panel(table)
+            {
+                Header = new PanelHeader($"[yellow]Confirm Deletion: {entityType}[/]", Justify.Left),
+                Border = BoxBorder.Rounded,
+                BorderStyle = Style.Parse("yellow"),
+                Width = 100
+            };
+
+            AnsiConsole.WriteLine();
+            AnsiConsole.Write(panel);
+
+            return AnsiConsole.Confirm($"[red]CRITICAL:[/] Are you sure you want to delete these {itemNames.Count} {entityType}(s)?", false);
         }
     }
 }

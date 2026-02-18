@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -87,22 +88,34 @@ namespace ToodledoConsole
             return response.IsSuccessStatusCode;
         }
 
+        public async Task<bool> DeleteLocationsAsync(IEnumerable<long> ids)
+        {
+            bool allSuccess = true;
+            foreach (var id in ids)
+            {
+                var content = new FormUrlEncodedContent(new[] {
+                    new KeyValuePair<string, string>("access_token", _authService.AccessToken),
+                    new KeyValuePair<string, string>("id", id.ToString())
+                });
+                var response = await _httpClient.PostAsync("https://api.toodledo.com/3/locations/delete.php", content);
+                var responseJson = await response.Content.ReadAsStringAsync();
+
+                using var doc = JsonDocument.Parse(responseJson);
+                if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("errorCode", out var errCode))
+                {
+                    allSuccess = false;
+                }
+                else if (!response.IsSuccessStatusCode)
+                {
+                    allSuccess = false;
+                }
+            }
+            return allSuccess;
+        }
+
         public async Task<bool> DeleteLocationAsync(long id)
         {
-            var content = new FormUrlEncodedContent(new[] {
-                new KeyValuePair<string, string>("access_token", _authService.AccessToken),
-                new KeyValuePair<string, string>("id", id.ToString())
-            });
-            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/locations/delete.php", content);
-            var responseJson = await response.Content.ReadAsStringAsync();
-
-            using var doc = JsonDocument.Parse(responseJson);
-            if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("errorCode", out var errCode))
-            {
-                throw new ToodledoApiException(errCode.GetInt32(), doc.RootElement.GetProperty("errorDesc").GetString() ?? "Unknown API Error");
-            }
-
-            return response.IsSuccessStatusCode;
+            return await DeleteLocationsAsync(new[] { id });
         }
     }
 }
