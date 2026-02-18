@@ -21,6 +21,7 @@ namespace ToodledoConsole
             table.BorderStyle(Style.Parse("cyan"));
 
             table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
+            table.AddColumn(new TableColumn("[gold1]★[/]").Centered().Width(3));
             table.AddColumn(new TableColumn("[cyan]Task[/]").LeftAligned());
             table.AddColumn(new TableColumn("[cyan]Tags[/]").LeftAligned());
 
@@ -28,6 +29,7 @@ namespace ToodledoConsole
             {
                 table.AddRow(
                     $"[dim]{task.id}[/]",
+                    GetStarMarkup(task.star),
                     $"[white]{task.title.EscapeMarkup()}[/]",
                     $"[silver dim]{task.tag.EscapeMarkup()}[/]"
                 );
@@ -75,6 +77,7 @@ namespace ToodledoConsole
 
             table.AddColumn(new TableColumn("[cyan]ID[/]").Centered());
             table.AddColumn(new TableColumn("[cyan]P[/]").Centered());
+            table.AddColumn(new TableColumn("[gold1]★[/]").Centered().Width(3));
             table.AddColumn(new TableColumn("[cyan]Task[/]").LeftAligned());
             table.AddColumn(new TableColumn("[cyan]Tags[/]").LeftAligned());
 
@@ -83,6 +86,7 @@ namespace ToodledoConsole
                 table.AddRow(
                     $"[dim]{task.id}[/]",
                     GetPriorityMarkup(task.priority),
+                    GetStarMarkup(task.star),
                     $"[white]{task.title.EscapeMarkup()}[/]",
                     $"[silver dim]{task.tag.EscapeMarkup()}[/]"
                 );
@@ -100,6 +104,8 @@ namespace ToodledoConsole
             table.AddRow("[dim]ID:[/]", $"[dim]{task.id}[/]");
             table.AddRow("[dim]Title:[/]", $"[white]{task.title.EscapeMarkup()}[/]");
             table.AddRow("[dim]Priority:[/]", GetPriorityMarkup(task.priority));
+            if (task.star == 1)
+                table.AddRow("[dim]Starred:[/]", "[gold1]★ Yes[/]");
 
             if (task.folder != 0)
                 table.AddRow("[dim]Folder:[/]", $"[green]{folders.FirstOrDefault(f => f.id == task.folder)?.name.EscapeMarkup() ?? "Unknown"}[/]");
@@ -408,6 +414,8 @@ namespace ToodledoConsole
             table.AddRow("[cyan]view[/] [white]<id>[/]", "[dim]View full task details (including notes)[/]");
             table.AddRow("[cyan]done[/] [white]<id1> <id2>...[/]", "[dim]Mark one or more tasks as completed[/]");
             table.AddRow("[cyan]delete[/] [white]<id1> <id2>...[/]", "[dim]Permanently remove one or more tasks[/]");
+            table.AddRow("[cyan]star[/] [white]<id1> [[id2]]...[/]", "[dim]Star one or more tasks[/]");
+            table.AddRow("[cyan]unstar[/] [white]<id1> [[id2]]...[/]", "[dim]Unstar one or more tasks[/]");
             table.AddRow("[cyan]tag[/] [white]<id1> [[id2]]... <tags>[/]", "[dim]Quickly update tags for one or more tasks[/]");
             table.AddRow("[cyan]note[/] [white]<id1> [[id2]]... <text>[/]", "[dim]Quickly update note for one or more tasks[/]");
             table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
@@ -507,6 +515,11 @@ namespace ToodledoConsole
                 -1 => "[dim]?[/]",
                 _ => "[dim] [/]"
             };
+        }
+
+        public static string GetStarMarkup(int star)
+        {
+            return star == 1 ? "[gold1]★[/]" : "[dim]·[/]";
         }
         public static bool ConfirmDeletion(string entityType, List<string> itemNames)
         {

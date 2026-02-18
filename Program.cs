@@ -150,6 +150,8 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("location-delete ")) await DeleteLocation(cleanInput.Substring(16).Trim());
                 else if (lowerInput == "setup") await RunSetup();
                 else if (lowerInput.StartsWith("delete ")) await DeleteTask(cleanInput.Substring(7).Trim());
+                else if (lowerInput.StartsWith("star ")) await StarTasks(cleanInput.Substring(5).Trim());
+                else if (lowerInput.StartsWith("unstar ")) await UnstarTasks(cleanInput.Substring(7).Trim());
                 else AnsiConsole.MarkupLine("[red]Unknown command. Type 'help' for available commands.[/]");
             }
         }
@@ -418,6 +420,66 @@ namespace ToodledoConsole
             else
             {
                 AnsiConsole.MarkupLine("[red]✗ Error completing one or more tasks.[/]");
+            }
+        }
+
+        private static async Task StarTasks(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return;
+
+            var ids = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (ids.Length == 0) return;
+
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("gold1"))
+                .StartAsync($"[gold1]Starring {(ids.Length > 1 ? ids.Length.ToString() + " tasks" : "task")}...[/]", async ctx =>
+                {
+                    return await _taskService.StarTasksAsync(ids);
+                });
+
+            if (success)
+            {
+                AnsiConsole.MarkupLine($"[green]✓ {(ids.Length > 1 ? ids.Length.ToString() + " Tasks" : "Task")} Starred![/]");
+                foreach (var id in ids)
+                {
+                    var task = _cachedTasks.FirstOrDefault(t => t.id == id);
+                    if (task != null) task.star = 1;
+                }
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[red]✗ Error starring one or more tasks.[/]");
+            }
+        }
+
+        private static async Task UnstarTasks(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return;
+
+            var ids = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (ids.Length == 0) return;
+
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("dim"))
+                .StartAsync($"[dim]Unstarring {(ids.Length > 1 ? ids.Length.ToString() + " tasks" : "task")}...[/]", async ctx =>
+                {
+                    return await _taskService.UnstarTasksAsync(ids);
+                });
+
+            if (success)
+            {
+                AnsiConsole.MarkupLine($"[green]✓ {(ids.Length > 1 ? ids.Length.ToString() + " Tasks" : "Task")} Unstarred![/]");
+                foreach (var id in ids)
+                {
+                    var task = _cachedTasks.FirstOrDefault(t => t.id == id);
+                    if (task != null) task.star = 0;
+                }
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[red]✗ Error unstarring one or more tasks.[/]");
             }
         }
 
