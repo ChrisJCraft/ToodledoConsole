@@ -36,18 +36,18 @@ A lightweight, modern C# CLI tool for managing your [Toodledo](https://www.toodl
 | `delete [id]` | Permanently remove a task |
 | `find [text]` | Search for tasks by title or keyword |
 | `filter [k:v]` | Power-user filters (e.g., `filter p:1 f:Inbox @Work`) |
-| `folders` | List all folders |
-| `add-folder [name]` | Create a new folder |
-| `edit-folder [i|n] [new]` | Rename a folder (by ID or name) |
-| `delete-folder [i|n]` | Remove a folder (by ID or name) |
-| `contexts` | List all contexts |
-| `add-context [name]` | Create a new context |
-| `edit-context [i|n] [new]` | Rename a context (by ID or name) |
-| `delete-context [i|n]` | Remove a context (by ID or name) |
-| `locations` | List all locations |
-| `add-location [name]` | Create a new location |
-| `edit-location [i|n] [new]` | Rename a location (by ID or name) |
-| `delete-location [i|n]` | Remove a location (by ID or name) |
+| `folder` | List all folders |
+| `folder-add [name]` | Create a new folder |
+| `folder-edit [i|n] [new]` | Rename a folder (by ID or name) |
+| `folder-delete [i|n]...` | Remove one or more folders (by ID or name) |
+| `context` | List all contexts |
+| `context-add [name]` | Create a new context |
+| `context-edit [i|n] [new]` | Rename a context (by ID or name) |
+| `context-delete [i|n]...` | Remove one or more contexts (by ID or name) |
+| `location` | List all locations |
+| `location-add [name]` | Create a new location |
+| `location-edit [i|n] [new]` | Rename a location (by ID or name) |
+| `location-delete [i|n]...` | Remove one or more locations (by ID or name) |
 | `random [k:v]` | Pick a random task (supports selectors like `random p:2`) |
 | `help` | Show available commands and usage information |
 | `exit` | Close the application |

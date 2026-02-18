@@ -396,33 +396,52 @@ namespace ToodledoConsole
             table.BorderStyle(Style.Parse("cyan"));
             table.HideHeaders();
 
-            table.AddColumn(new TableColumn("").Width(20));
+            table.AddColumn(new TableColumn("").Width(32));
             table.AddColumn(new TableColumn(""));
 
+            // --- TASK ---
+            table.AddRow("[yellow]TASK[/]", "");
             table.AddRow("[cyan]list[/]", "[dim]Display all active tasks[/]");
             table.AddRow("[cyan]stats[/]", "[dim]Show productivity dashboard[/]");
-            table.AddRow("[cyan]contexts[/]", "[dim]Display all contexts[/]");
             table.AddRow("[cyan]add[/] [white]<text>[/]", "[dim]Create task (ex: add Buy milk p:3 @Store !:today)[/]");
             table.AddRow("[cyan]edit[/] [white]<id>[/]", "[dim]Edit task using shadow prompt shorthand[/]");
             table.AddRow("[cyan]view[/] [white]<id>[/]", "[dim]View full task details (including notes)[/]");
-            table.AddRow("[cyan]tag[/] [white]<id> <tags>[/]", "[dim]Quickly update tags for a task[/]");
-            table.AddRow("[cyan]note[/] [white]<id> <text>[/]", "[dim]Quickly update note for a task[/]");
             table.AddRow("[cyan]done[/] [white]<id1> <id2>...[/]", "[dim]Mark one or more tasks as completed[/]");
             table.AddRow("[cyan]delete[/] [white]<id1> <id2>...[/]", "[dim]Permanently remove one or more tasks[/]");
-            table.AddRow("[cyan]add-context[/] [white]<name>[/]", "[dim]Create a new context[/]");
-            table.AddRow("[cyan]edit-context[/] [white]<id|name> <new>[/]", "[dim]Rename a context[/]");
-            table.AddRow("[cyan]delete-context[/] [white]<id1> <id2>...[/]", "[dim]Remove one or more contexts[/]");
-            table.AddRow("[cyan]folders[/]", "[dim]Display all folders[/]");
-            table.AddRow("[cyan]add-folder[/] [white]<name>[/]", "[dim]Create a new folder[/]");
-            table.AddRow("[cyan]edit-folder[/] [white]<id|name> <new>[/]", "[dim]Rename a folder[/]");
-            table.AddRow("[cyan]delete-folder[/] [white]<id1> <id2>...[/]", "[dim]Remove one or more folders[/]");
-            table.AddRow("[cyan]locations[/]", "[dim]Display all locations[/]");
-            table.AddRow("[cyan]add-location[/] [white]<name>[/]", "[dim]Create a new location[/]");
-            table.AddRow("[cyan]edit-location[/] [white]<id|name> <new>[/]", "[dim]Rename a location[/]");
-            table.AddRow("[cyan]delete-location[/] [white]<id1> <id2>...[/]", "[dim]Remove one or more locations[/]");
+            table.AddRow("[cyan]tag[/] [white]<id1> [[id2]]... <tags>[/]", "[dim]Quickly update tags for one or more tasks[/]");
+            table.AddRow("[cyan]note[/] [white]<id1> [[id2]]... <text>[/]", "[dim]Quickly update note for one or more tasks[/]");
             table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
             table.AddRow("[cyan]filter[/] [white][[k:v]][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");
             table.AddRow("[cyan]random[/] [white][[k:v]][/]", "[dim]Show random task (supports selectors like p:2, @Work)[/]");
+
+            // --- CONTEXT ---
+            table.AddEmptyRow();
+            table.AddRow("[yellow]CONTEXT[/]", "");
+            table.AddRow("[cyan]context[/] [white][[search]][/]", "[dim]Display all contexts (optional search filtering)[/]");
+            table.AddRow("[cyan]context-add[/] [white]<name>[/]", "[dim]Create a new context[/]");
+            table.AddRow("[cyan]context-edit[/] [white]<id|name> <new>[/]", "[dim]Rename a context[/]");
+            table.AddRow("[cyan]context-delete[/] [white]<id1> <id2>...[/]", "[dim]Remove one or more contexts[/]");
+
+            // --- FOLDER ---
+            table.AddEmptyRow();
+            table.AddRow("[yellow]FOLDER[/]", "");
+            table.AddRow("[cyan]folder[/] [white][[search]][/]", "[dim]Display all folders (optional search filtering)[/]");
+            table.AddRow("[cyan]folder-add[/] [white]<name>[/]", "[dim]Create a new folder[/]");
+            table.AddRow("[cyan]folder-edit[/] [white]<id|name> <new>[/]", "[dim]Rename a folder[/]");
+            table.AddRow("[cyan]folder-delete[/] [white]<id1> <id2>...[/]", "[dim]Remove one or more folders[/]");
+
+            // --- LOCATION ---
+            table.AddEmptyRow();
+            table.AddRow("[yellow]LOCATION[/]", "");
+            table.AddRow("[cyan]location[/] [white][[search]][/]", "[dim]Display all locations (optional search filtering)[/]");
+            table.AddRow("[cyan]location-add[/] [white]<name>[/]", "[dim]Create a new location[/]");
+            table.AddRow("[cyan]location-edit[/] [white]<id|name> <new>[/]", "[dim]Rename a location[/]");
+            table.AddRow("[cyan]location-delete[/] [white]<id1> <id2>...[/]", "[dim]Remove one or more locations[/]");
+
+            // --- SYSTEM ---
+            table.AddEmptyRow();
+            table.AddRow("[yellow]SYSTEM[/]", "");
+            table.AddRow("[cyan]setup[/]", "[dim]Run the API credential setup wizard[/]");
             table.AddRow("[cyan]help[/]", "[dim]Show this help message[/]");
             table.AddRow("[cyan]exit[/]", "[dim]Exit the application[/]");
 

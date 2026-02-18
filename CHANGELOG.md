@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0] - 2026-02-14
 
 ### Added
-- **Management Commands**: Added full CRUD support for `folders`, `contexts`, and `locations`
+- **Management Commands**: Added full CRUD support for `folder`, `context`, and `location`
 - **Extended Task Commands**: 
   - `view [id]`: View comprehensive task details, including notes
   - `note [id] [text]`: Quickly update or clear task notes

@@ -126,7 +126,7 @@ namespace ToodledoConsole
                 if (lowerInput == "help") UIService.DisplayHelp();
                 else if (lowerInput == "list") await ListTasks();
                 else if (lowerInput == "stats") await ShowStats();
-                else if (lowerInput == "contexts" || lowerInput.StartsWith("contexts ")) await ListContexts(cleanInput.Length > 8 ? cleanInput.Substring(9).Trim() : "");
+                else if (lowerInput == "context" || lowerInput.StartsWith("context ")) await ListContexts(cleanInput.Length > 7 ? cleanInput.Substring(8).Trim() : "");
                 else if (lowerInput == "random") await ShowRandom();
                 else if (lowerInput.StartsWith("random ")) await ShowRandom(cleanInput.Substring(7).Trim());
                 else if (lowerInput.StartsWith("filter ")) await FilterTasks(cleanInput.Substring(7).Trim());
@@ -137,17 +137,17 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("view ")) await ViewTask(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("tag ")) await TagTask(cleanInput.Substring(4).Trim());
                 else if (lowerInput.StartsWith("note ")) await NoteTask(cleanInput.Substring(5).Trim());
-                else if (lowerInput.StartsWith("add-context ")) await AddContext(cleanInput.Substring(12).Trim());
-                else if (lowerInput.StartsWith("edit-context ")) await EditContext(cleanInput.Substring(13).Trim());
-                else if (lowerInput.StartsWith("delete-context ")) await DeleteContext(cleanInput.Substring(15).Trim());
-                else if (lowerInput == "folders" || lowerInput.StartsWith("folders ")) await ListFolders(cleanInput.Length > 7 ? cleanInput.Substring(8).Trim() : "");
-                else if (lowerInput.StartsWith("add-folder ")) await AddFolder(cleanInput.Substring(11).Trim());
-                else if (lowerInput.StartsWith("edit-folder ")) await EditFolder(cleanInput.Substring(12).Trim());
-                else if (lowerInput.StartsWith("delete-folder ")) await DeleteFolder(cleanInput.Substring(14).Trim());
-                else if (lowerInput == "locations" || lowerInput.StartsWith("locations ")) await ListLocations(cleanInput.Length > 9 ? cleanInput.Substring(10).Trim() : "");
-                else if (lowerInput.StartsWith("add-location ")) await AddLocation(cleanInput.Substring(13).Trim());
-                else if (lowerInput.StartsWith("edit-location ")) await EditLocation(cleanInput.Substring(14).Trim());
-                else if (lowerInput.StartsWith("delete-location ")) await DeleteLocation(cleanInput.Substring(16).Trim());
+                else if (lowerInput.StartsWith("context-add ")) await AddContext(cleanInput.Substring(12).Trim());
+                else if (lowerInput.StartsWith("context-edit ")) await EditContext(cleanInput.Substring(13).Trim());
+                else if (lowerInput.StartsWith("context-delete ")) await DeleteContext(cleanInput.Substring(15).Trim());
+                else if (lowerInput == "folder" || lowerInput.StartsWith("folder ")) await ListFolders(cleanInput.Length > 6 ? cleanInput.Substring(7).Trim() : "");
+                else if (lowerInput.StartsWith("folder-add ")) await AddFolder(cleanInput.Substring(11).Trim());
+                else if (lowerInput.StartsWith("folder-edit ")) await EditFolder(cleanInput.Substring(12).Trim());
+                else if (lowerInput.StartsWith("folder-delete ")) await DeleteFolder(cleanInput.Substring(14).Trim());
+                else if (lowerInput == "location" || lowerInput.StartsWith("location ")) await ListLocations(cleanInput.Length > 8 ? cleanInput.Substring(9).Trim() : "");
+                else if (lowerInput.StartsWith("location-add ")) await AddLocation(cleanInput.Substring(13).Trim());
+                else if (lowerInput.StartsWith("location-edit ")) await EditLocation(cleanInput.Substring(14).Trim());
+                else if (lowerInput.StartsWith("location-delete ")) await DeleteLocation(cleanInput.Substring(16).Trim());
                 else if (lowerInput == "setup") await RunSetup();
                 else if (lowerInput.StartsWith("delete ")) await DeleteTask(cleanInput.Substring(7).Trim());
                 else AnsiConsole.MarkupLine("[red]Unknown command. Type 'help' for available commands.[/]");
@@ -650,7 +650,7 @@ namespace ToodledoConsole
         {
             if (string.IsNullOrWhiteSpace(name))
             {
-                AnsiConsole.MarkupLine("[red]Usage: add-context <name>[/]");
+                AnsiConsole.MarkupLine("[red]Usage: context-add <name>[/]");
                 return;
             }
 
@@ -682,14 +682,14 @@ namespace ToodledoConsole
         {
             if (string.IsNullOrWhiteSpace(input))
             {
-                AnsiConsole.MarkupLine("[red]Usage: edit-context <id_or_name> <new_name>[/]");
+                AnsiConsole.MarkupLine("[red]Usage: context-edit <id_or_name> <new_name>[/]");
                 return;
             }
 
             var parts = input.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 2)
             {
-                AnsiConsole.MarkupLine("[red]Usage: edit-context <id_or_name> <new_name>[/]");
+                AnsiConsole.MarkupLine("[red]Usage: context-edit <id_or_name> <new_name>[/]");
                 return;
             }
 
@@ -737,7 +737,7 @@ namespace ToodledoConsole
         {
             if (string.IsNullOrWhiteSpace(input))
             {
-                AnsiConsole.MarkupLine("[red]Usage: delete-context <id_or_name>...[/]");
+                AnsiConsole.MarkupLine("[red]Usage: context-delete <id1> <id2>...[/]");
                 return;
             }
 
@@ -823,7 +823,7 @@ namespace ToodledoConsole
         {
             if (string.IsNullOrWhiteSpace(name))
             {
-                AnsiConsole.MarkupLine("[red]Usage: add-folder <name>[/]");
+                AnsiConsole.MarkupLine("[red]Usage: folder-add <name>[/]");
                 return;
             }
 
@@ -855,14 +855,14 @@ namespace ToodledoConsole
         {
             if (string.IsNullOrWhiteSpace(input))
             {
-                AnsiConsole.MarkupLine("[red]Usage: edit-folder <id_or_name> <new_name>[/]");
+                AnsiConsole.MarkupLine("[red]Usage: folder-edit <id_or_name> <new_name>[/]");
                 return;
             }
 
             var parts = input.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 2)
             {
-                AnsiConsole.MarkupLine("[red]Usage: edit-folder <id_or_name> <new_name>[/]");
+                AnsiConsole.MarkupLine("[red]Usage: folder-edit <id_or_name> <new_name>[/]");
                 return;
             }
 
@@ -910,7 +910,7 @@ namespace ToodledoConsole
         {
             if (string.IsNullOrWhiteSpace(input))
             {
-                AnsiConsole.MarkupLine("[red]Usage: delete-folder <id_or_name>...[/]");
+                AnsiConsole.MarkupLine("[red]Usage: folder-delete <id1> <id2>...[/]");
                 return;
             }
 
@@ -996,7 +996,7 @@ namespace ToodledoConsole
         {
             if (string.IsNullOrWhiteSpace(name))
             {
-                AnsiConsole.MarkupLine("[red]Usage: add-location <name>[/]");
+                AnsiConsole.MarkupLine("[red]Usage: location-add <name>[/]");
                 return;
             }
 
@@ -1025,14 +1025,14 @@ namespace ToodledoConsole
         {
             if (string.IsNullOrWhiteSpace(input))
             {
-                AnsiConsole.MarkupLine("[red]Usage: edit-location <id_or_name> <new_name>[/]");
+                AnsiConsole.MarkupLine("[red]Usage: location-edit <id_or_name> <new_name>[/]");
                 return;
             }
 
             var parts = input.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 2)
             {
-                AnsiConsole.MarkupLine("[red]Usage: edit-location <id_or_name> <new_name>[/]");
+                AnsiConsole.MarkupLine("[red]Usage: location-edit <id_or_name> <new_name>[/]");
                 return;
             }
 
@@ -1077,7 +1077,7 @@ namespace ToodledoConsole
         {
             if (string.IsNullOrWhiteSpace(input))
             {
-                AnsiConsole.MarkupLine("[red]Usage: delete-location <id_or_name>...[/]");
+                AnsiConsole.MarkupLine("[red]Usage: location-delete <id1> <id2>...[/]");
                 return;
             }
 
