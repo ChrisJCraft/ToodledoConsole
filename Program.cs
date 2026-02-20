@@ -33,6 +33,12 @@ namespace ToodledoConsole
         {
             AnsiConsole.Clear();
 
+            // Ensure app content fits within 100 columns as designed
+            if (AnsiConsole.Profile.Width > 100)
+            {
+                AnsiConsole.Profile.Width = 100;
+            }
+
             // Display styled banner
             var rule = new Rule("[cyan]TOODLEDO CONSOLE[/]");
             rule.Style = Style.Parse("cyan");
