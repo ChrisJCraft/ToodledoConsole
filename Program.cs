@@ -28,6 +28,7 @@ namespace ToodledoConsole
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         private static readonly string RandomStateFile = "random_state.json";
         private static HashSet<string> _seenTaskIds = new HashSet<string>();
+        private static DateTime _lastCommandTime = DateTime.Now;
 
         static async Task Main(string[] args)
         {
@@ -119,6 +120,24 @@ namespace ToodledoConsole
                 var input = _inputService.ReadLineWithHistory("[cyan]Toodledo> [/]");
 
                 if (string.IsNullOrWhiteSpace(input)) continue;
+
+                if ((DateTime.Now - _lastCommandTime).TotalMinutes > 55)
+                {
+                    bool refreshed = await AnsiConsole.Status()
+                        .Spinner(Spinner.Known.Dots)
+                        .SpinnerStyle(Style.Parse("yellow"))
+                        .StartAsync("[yellow]Refreshing session due to inactivity...[/]", async ctx =>
+                        {
+                            return await _authService.RefreshTokenAsync();
+                        });
+                    
+                    if (!refreshed)
+                    {
+                        AnsiConsole.MarkupLine("[red]✗ Failed to refresh session. You may need to restart the application.[/]");
+                    }
+                }
+
+                _lastCommandTime = DateTime.Now;
 
                 string cleanInput = input.Trim();
                 string lowerInput = cleanInput.ToLower();
