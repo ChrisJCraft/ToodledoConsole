@@ -28,8 +28,8 @@ A lightweight, modern C# CLI tool for managing your [Toodledo](https://www.toodl
 |---------|-------------|
 | `list` | Display all current tasks in a formatted table |
 | `stats` | Show productivity dashboard with charts and progress |
-| `add [text]` | Create a new task (supports shorthands) |
-| `edit [id]` | Edit task using "Shadow Prompt" shorthand mode |
+| `add [text] [params]`| Create task. Params: `p:[0-3]`, `f:[name]`, `@[name]`, `!:[date]`, `*:[1|0]`, `s:[status]`, `#[tag]`, `n:"[note]"` |
+| `edit [id]` | Edit task using "Shadow Prompt" shorthand mode (supports same params as add) |
 | `view [id]` | View full task details (including notes) |
 | `tag [id]... [tags]` | Quickly update tags for one or more tasks |
 | `note [id]... [text]` | Quickly update note for one or more tasks |
@@ -38,7 +38,7 @@ A lightweight, modern C# CLI tool for managing your [Toodledo](https://www.toodl
 | `star [id]...` | Star one or more tasks |
 | `unstar [id]...` | Unstar one or more tasks |
 | `find [text]` | Search for tasks by title or keyword |
-| `filter [k:v]` | Power-user filters (e.g., `filter p:1 f:Inbox @Work`) |
+| `filter [params]` | List tasks matching parameters. Params: `p:[0-3]`, `f:[name]`, `@[name]`, `!:[date]`, `*:[1|0]`, `s:[status]`, `#[tag]`, `n:"[note]"` |
 | `folder [search]` | List all folders (optional search filtering) |
 | `folder-add [name]` | Create a new folder |
 | `folder-edit [i|n] [new]` | Rename a folder (by ID or name) |
@@ -52,7 +52,7 @@ A lightweight, modern C# CLI tool for managing your [Toodledo](https://www.toodl
 | `location-edit [i|n] [new]` | Rename a location (by ID or name) |
 | `location-delete [i|n]...` | Remove one or more locations (by ID or name) |
 | `setup` | Run the API credential setup wizard |
-| `random [k:v]` | Pick a random task (supports selectors like `random p:2`) |
+| `random [params]` | Pick a random task matching parameters. Params: `p:[0-3]`, `f:[name]`, `@[name]`, `!:[date]`, `*:[1|0]`, `s:[status]`, `#[tag]`, `n:"[note]"` |
 | `help` | Show available commands and usage information |
 | `exit` | Close the application |
 
@@ -132,9 +132,10 @@ Use these shorthands with the `add` and `edit` commands for rapid task entry:
 | `f:[name]` | Folder Name | `add Script f:Work` |
 | `@[name]` | Context Name | `add Bread @Store` |
 | `!:[shortcut]`| Due Date (today, tomorrow, next week) | `add Taxes !:today` |
+| `s:[status]`| Status code (0: None, 1: Next Action, 2: Active, etc.) | `add Review s:1` |
 | `#[tag]` | Add a tag (can be used multiple times) | `add Release #v0.1.0 #beta` |
 | `n:"[text]"` | Add a note (best in quotes) | `add Jira n:"Fix bug"` |
-| `*` | Star the task | `add Urgent *` |
+| `*` or `*:1` | Star the task | `add Urgent *` |
 
 > **Pro Tip**: You can combine multiple shorthands in a single command!
 > `add Buy milk p:3 @Store f:Personal !:today #groceries n:"Get whole milk"`

@@ -410,18 +410,25 @@ namespace ToodledoConsole
             table.AddRow("[yellow]TASK[/]", "");
             table.AddRow("[cyan]list[/]", "[dim]Display all active tasks[/]");
             table.AddRow("[cyan]stats[/]", "[dim]Show productivity dashboard[/]");
-            table.AddRow("[cyan]add[/] [white]<text>[/]", "[dim]Create task (ex: add Buy milk p:3 @Store !:today)[/]");
-            table.AddRow("[cyan]edit[/] [white]<id>[/]", "[dim]Edit task using shadow prompt shorthand[/]");
+            table.AddRow("[cyan]add[/] [white]<text> [[params]][/]", "[dim]Create a task with optional parameters:[/]");
+            table.AddRow("", "[dim]  [white]p:[[0-3]][/] Priority      [white]f:name[/]  Folder        [white]@name[/]  Context[/]");
+            table.AddRow("", "[dim]  [white]!:date[/]  Due Date      [white]*:1[/]     Star          [white]s:#[/]    Status[/]");
+            table.AddRow("", "[dim]  [white]#tag[/]    Tag           [white]n:\"...\"[/] Note[/]");
+            table.AddRow("", "[dim]  (e.g., add Buy milk p:3 @Store f:Personal !:today)[/]");
+            table.AddRow("[cyan]edit[/] [white]<id>[/]", "[dim]Edit task via shadow prompt:[/]");
+            table.AddRow("", "[dim]  (supports same parameters as add)[/]");
             table.AddRow("[cyan]view[/] [white]<id>[/]", "[dim]View full task details (including notes)[/]");
-            table.AddRow("[cyan]done[/] [white]<id1> <id2>...[/]", "[dim]Mark one or more tasks as completed[/]");
-            table.AddRow("[cyan]delete[/] [white]<id1> <id2>...[/]", "[dim]Permanently remove one or more tasks[/]");
+            table.AddRow("[cyan]done[/] [white]<id1> [[id2]]...[/]", "[dim]Mark one or more tasks as completed[/]");
+            table.AddRow("[cyan]delete[/] [white]<id1> [[id2]]...[/]", "[dim]Permanently remove one or more tasks[/]");
             table.AddRow("[cyan]star[/] [white]<id1> [[id2]]...[/]", "[dim]Star one or more tasks[/]");
             table.AddRow("[cyan]unstar[/] [white]<id1> [[id2]]...[/]", "[dim]Unstar one or more tasks[/]");
             table.AddRow("[cyan]tag[/] [white]<id1> [[id2]]... <tags>[/]", "[dim]Quickly update tags for one or more tasks[/]");
             table.AddRow("[cyan]note[/] [white]<id1> [[id2]]... <text>[/]", "[dim]Quickly update note for one or more tasks[/]");
             table.AddRow("[cyan]find[/] [white]<text>[/]", "[dim]Search tasks by keyword[/]");
-            table.AddRow("[cyan]filter[/] [white][[k:v]][/]", "[dim]Power-user filters (p:2, f:Inbox, @Work...)[/]");
-            table.AddRow("[cyan]random[/] [white][[k:v]][/]", "[dim]Show random task (supports selectors like p:2, @Work)[/]");
+            table.AddRow("[cyan]filter[/] [white][[params]][/]", "[dim]List tasks matching parameters:[/]");
+            table.AddRow("", "[dim]  (supports same parameters as add)[/]");
+            table.AddRow("[cyan]random[/] [white][[params]][/]", "[dim]Show random task matching parameters:[/]");
+            table.AddRow("", "[dim]  (supports same parameters as add)[/]");
 
             // --- CONTEXT ---
             table.AddEmptyRow();
