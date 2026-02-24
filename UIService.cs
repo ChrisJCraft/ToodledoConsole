@@ -25,14 +25,27 @@ namespace ToodledoConsole
             table.AddColumn(new TableColumn("[cyan]Task[/]").LeftAligned());
             table.AddColumn(new TableColumn("[cyan]Tags[/]").LeftAligned());
 
-            foreach (var task in tasks)
+            for (int i = 0; i < tasks.Count; i++)
             {
-                table.AddRow(
-                    $"[dim]{task.id}[/]",
-                    GetStarMarkup(task.star),
-                    $"[white]{task.title.EscapeMarkup()}[/]",
-                    $"[silver dim]{task.tag.EscapeMarkup()}[/]"
-                );
+                var task = tasks[i];
+                if (i % 2 == 0)
+                {
+                    table.AddRow(
+                        $"[dim]{task.id}[/]",
+                        GetStarMarkup(task.star),
+                        $"[white]{task.title.EscapeMarkup()}[/]",
+                        $"[silver dim]{task.tag.EscapeMarkup()}[/]"
+                    );
+                }
+                else
+                {
+                    table.AddRow(
+                        $"[on grey11][dim]{task.id}[/][/]",
+                        $"[on grey11]{GetStarMarkup(task.star)}[/]",
+                        $"[on grey11][white]{task.title.EscapeMarkup()}[/][/]",
+                        $"[on grey11][silver dim]{task.tag.EscapeMarkup()}[/][/]"
+                    );
+                }
             }
 
             AnsiConsole.WriteLine();
@@ -81,15 +94,29 @@ namespace ToodledoConsole
             table.AddColumn(new TableColumn("[cyan]Task[/]").LeftAligned());
             table.AddColumn(new TableColumn("[cyan]Tags[/]").LeftAligned());
 
-            foreach (var task in tasks)
+            for (int i = 0; i < tasks.Count; i++)
             {
-                table.AddRow(
-                    $"[dim]{task.id}[/]",
-                    GetPriorityMarkup(task.priority),
-                    GetStarMarkup(task.star),
-                    $"[white]{task.title.EscapeMarkup()}[/]",
-                    $"[silver dim]{task.tag.EscapeMarkup()}[/]"
-                );
+                var task = tasks[i];
+                if (i % 2 == 0)
+                {
+                    table.AddRow(
+                        $"[dim]{task.id}[/]",
+                        GetPriorityMarkup(task.priority),
+                        GetStarMarkup(task.star),
+                        $"[white]{task.title.EscapeMarkup()}[/]",
+                        $"[silver dim]{task.tag.EscapeMarkup()}[/]"
+                    );
+                }
+                else
+                {
+                    table.AddRow(
+                        $"[on grey11][dim]{task.id}[/][/]",
+                        $"[on grey11]{GetPriorityMarkup(task.priority)}[/]",
+                        $"[on grey11]{GetStarMarkup(task.star)}[/]",
+                        $"[on grey11][white]{task.title.EscapeMarkup()}[/][/]",
+                        $"[on grey11][silver dim]{task.tag.EscapeMarkup()}[/][/]"
+                    );
+                }
             }
 
             AnsiConsole.Write(table);
@@ -419,6 +446,7 @@ namespace ToodledoConsole
             table.AddRow("", "[dim]  (supports same parameters as add)[/]");
             table.AddRow("[cyan]view[/] [white]<id>[/]", "[dim]View full task details (including notes)[/]");
             table.AddRow("[cyan]done[/] [white]<id1> [[id2]]...[/]", "[dim]Mark one or more tasks as completed[/]");
+            table.AddRow("[cyan]undone[/] [white]<id1> [[id2]]...[/]", "[dim]Restore one or more completed tasks to active[/]");
             table.AddRow("[cyan]delete[/] [white]<id1> [[id2]]...[/]", "[dim]Permanently remove one or more tasks[/]");
             table.AddRow("[cyan]star[/] [white]<id1> [[id2]]...[/]", "[dim]Star one or more tasks[/]");
             table.AddRow("[cyan]unstar[/] [white]<id1> [[id2]]...[/]", "[dim]Unstar one or more tasks[/]");

@@ -216,6 +216,37 @@ namespace ToodledoConsole
             return await CompleteTasksAsync(new[] { id });
         }
 
+        public async Task<bool> UncompleteTasksAsync(IEnumerable<string> ids)
+        {
+            var taskList = new List<Dictionary<string, object>>();
+            foreach (var id in ids)
+            {
+                taskList.Add(new Dictionary<string, object>
+                {
+                    { "id", id },
+                    { "completed", 0 }
+                });
+            }
+
+            var taskData = JsonSerializer.Serialize(taskList, _jsonOptions);
+            var content = new FormUrlEncodedContent(new[] {
+                new KeyValuePair<string, string>("access_token", _authService.AccessToken),
+                new KeyValuePair<string, string>("tasks", taskData)
+            });
+            var response = await _httpClient.PostAsync("https://api.toodledo.com/3/tasks/edit.php", content);
+            var responseJson = await response.Content.ReadAsStringAsync();
+
+            using var doc = JsonDocument.Parse(responseJson);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("errorCode", out var errCode))
+            {
+                throw new ToodledoApiException(errCode.GetInt32(), doc.RootElement.GetProperty("errorDesc").GetString() ?? "Unknown API Error");
+            }
+
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> UncompleteTaskAsync(string id) => await UncompleteTasksAsync(new[] { id });
+
         public async Task<bool> StarTasksAsync(IEnumerable<string> ids)
         {
             var taskList = new List<Dictionary<string, object>>();

@@ -157,6 +157,7 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("filter ")) await FilterTasks(cleanInput.Substring(7).Trim());
                 else if (lowerInput.StartsWith("find ")) await SearchTasks(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("done ")) await CompleteTasks(cleanInput.Substring(5).Trim());
+                else if (lowerInput.StartsWith("undone ")) await UncompleteTasks(cleanInput.Substring(7).Trim());
                 else if (lowerInput.StartsWith("add ")) await AddTask(cleanInput.Substring(4).Trim());
                 else if (lowerInput.StartsWith("edit ")) await EditTask(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("view ")) await ViewTask(cleanInput.Substring(5).Trim());
@@ -435,17 +436,53 @@ namespace ToodledoConsole
             if (success)
             {
                 AnsiConsole.MarkupLine($"[green]✓ {(ids.Length > 1 ? ids.Length.ToString() + " Tasks" : "Task")} Completed![/]");
+                var completedTasks = ids
+                    .Select(id => _cachedTasks.FirstOrDefault(t => t.id == id))
+                    .Where(t => t != null)
+                    .ToList();
                 foreach (var id in ids)
                 {
                     _cachedTasks.RemoveAll(t => t.id == id);
                     _seenTaskIds.Remove(id);
                 }
                 SaveRandomState();
+                foreach (var t in completedTasks)
+                {
+                    AnsiConsole.MarkupLine($"  [grey]#{Markup.Escape(t!.id)}[/] [white]{Markup.Escape(t.title)}[/]");
+                }
                 AnsiConsole.MarkupLine($"[cyan]{_cachedTasks.Count} Tasks Remaining.[/]");
             }
             else
             {
                 AnsiConsole.MarkupLine("[red]✗ Error completing one or more tasks.[/]");
+            }
+        }
+
+        private static async Task UncompleteTasks(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return;
+
+            var ids = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (ids.Length == 0) return;
+
+            bool success = await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("yellow"))
+                .StartAsync($"[yellow]Marking {(ids.Length > 1 ? ids.Length.ToString() + " tasks" : "task")} as incomplete...[/]", async ctx =>
+                {
+                    return await _taskService.UncompleteTasksAsync(ids);
+                });
+
+            if (success)
+            {
+                AnsiConsole.MarkupLine($"[green]✓ {(ids.Length > 1 ? ids.Length.ToString() + " Tasks" : "Task")} marked incomplete![/]");
+                AnsiConsole.MarkupLine($"[dim]Note: Task(s) restored to active list.[/]");
+                // Refresh cached tasks so the restored task appears in list
+                await ListTasks();
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[red]✗ Error marking one or more tasks as incomplete.[/]");
             }
         }
 
