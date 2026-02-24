@@ -174,6 +174,7 @@ namespace ToodledoConsole
                 else if (lowerInput.StartsWith("location-edit ")) await EditLocation(cleanInput.Substring(14).Trim());
                 else if (lowerInput.StartsWith("location-delete ")) await DeleteLocation(cleanInput.Substring(16).Trim());
                 else if (lowerInput == "setup") await RunSetup();
+                else if (lowerInput == "about") UIService.DisplayAbout();
                 else if (lowerInput.StartsWith("delete ")) await DeleteTask(cleanInput.Substring(7).Trim());
                 else if (lowerInput.StartsWith("star ")) await StarTasks(cleanInput.Substring(5).Trim());
                 else if (lowerInput.StartsWith("unstar ")) await UnstarTasks(cleanInput.Substring(7).Trim());

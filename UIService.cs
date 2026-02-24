@@ -458,6 +458,7 @@ namespace ToodledoConsole
             table.AddEmptyRow();
             table.AddRow("[yellow]SYSTEM[/]", "");
             table.AddRow("[cyan]setup[/]", "[dim]Run the API credential setup wizard[/]");
+            table.AddRow("[cyan]about[/]", "[dim]About the developer[/]");
             table.AddRow("[cyan]help[/]", "[dim]Show this help message[/]");
             table.AddRow("[cyan]exit[/]", "[dim]Exit the application[/]");
 
@@ -488,6 +489,30 @@ namespace ToodledoConsole
             var panel = new Panel(grid)
             {
                 Header = new PanelHeader("[cyan]Toodledo API Setup Wizard[/]"),
+                Border = BoxBorder.Rounded,
+                BorderStyle = Style.Parse("cyan"),
+                Padding = new Padding(2, 1),
+                Width = 100
+            };
+
+            AnsiConsole.WriteLine();
+            AnsiConsole.Write(panel);
+            AnsiConsole.WriteLine();
+        }
+
+        public static void DisplayAbout()
+        {
+            var grid = new Grid();
+            grid.AddColumn();
+            grid.AddColumn();
+            
+            grid.AddRow(new Markup("[cyan]Developer:[/]"), new Markup("[white]Christopher Jay Craft[/]"));
+            grid.AddRow(new Markup("[cyan]GitHub:[/]"), new Markup("[link=https://github.com/ChrisJCraft]https://github.com/ChrisJCraft[/]"));
+            grid.AddRow(new Markup("[cyan]LinkedIn:[/]"), new Markup("[link=https://www.linkedin.com/in/cjcraft/]https://www.linkedin.com/in/cjcraft/[/]"));
+
+            var panel = new Panel(grid)
+            {
+                Header = new PanelHeader("[cyan]About Toodledo Console[/]"),
                 Border = BoxBorder.Rounded,
                 BorderStyle = Style.Parse("cyan"),
                 Padding = new Padding(2, 1),
